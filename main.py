@@ -1,9 +1,9 @@
 # --- IMPORTACIONES ---
 import tkinter as tk
 from tkinter import messagebox
-# Importamos las clases de nuestras otras ventanas (Login y Subida)
+# Importamos las clases de nuestras otras ventanas (Login, Subida, auditoria, busqueda, etc)
 from modules.login import LoginView
-from modules.modulo1_Subida import UploadModule
+from modules.modulo1_Subida import Subida_modulo1
 from modules.auditoria_gui import VentanaAuditoria
 
 
@@ -51,34 +51,39 @@ class MainApp:
         # --- GENERACIÓN DINÁMICA DE BOTONES ---
         # Aquí decidimos qué botones pintar basándonos en la lista de permisos
 
-        # 1. BOTÓN DE TU MÓDULO (Subida)
+        # 1. BOTÓN DE MÓDULO 1 (Subida de documentos)
         # Si la palabra 'subir_documentos' está en la lista de permisos del usuario...
+        # Esta función abre la ventana de modulo 1
+        # Le pasamos 'self.usuario_actual' para que el módulo sepa quién está subiendo el archivo
         if "subir_documentos" in permisos:
             # ...Dibujamos el botón
-            btn = tk.Button(self.root, text="1. Registrar Nuevo Documento", bg="#E3F2FD", height=2,
-                            command=self.abrir_modulo_1) # Al hacer click, llama a abrir_modulo_1
+            btn = tk.Button(self.root, text="1. Registrar Nuevo Documento", 
+                            bg="#E3F2FD", 
+                            height=2,
+                            command=lambda: Subida_modulo1(self.root, self.usuario_actual)) 
+            # Al hacer click, llama a abrir_modulo_1
             btn.pack(fill="x", padx=50, pady=5)
 
-        # 2. BOTÓN DE BÚSQUEDA
+        # 2. BOTÓN DE MODULO 2 BÚSQUEDA
         if "busqueda_avanzada" in permisos:
             btn = tk.Button(self.root, text="2. Búsqueda Avanzada", bg="#F3E5F5", height=2,
                             # Usamos lambda para imprimir en consola sin hacer nada visual (simulación)
                             command=lambda: print(">> Módulo Búsqueda: Pendiente de integración"))
             btn.pack(fill="x", padx=50, pady=5)
 
-        # 3. BOTÓN DE CATEGORÍAS
+        # 3. BOTÓN DE  MODULO 3 CATEGORÍAS
         if "gestion_categorias" in permisos:
             btn = tk.Button(self.root, text="3. Gestión de Categorías", bg="#E8F5E9", height=2,
                             command=lambda: print(">> Módulo Categorías: Pendiente de integración"))
             btn.pack(fill="x", padx=50, pady=5)
 
-        # 4. BOTÓN DE VERSIONES
+        # 4. BOTÓN DE  MODULO 4 VERSIONES
         if "versiones_comentarios" in permisos:
             btn = tk.Button(self.root, text="4. Versiones y Comentarios", bg="#FFF3E0", height=2,
                             command=lambda: print(">> Módulo Versiones: Pendiente de integración"))
             btn.pack(fill="x", padx=50, pady=5)
 
-        # 5. BOTÓN DE AUDITORÍA
+        # 5. BOTÓN DE  MODULO 5 AUDITORÍA
         if "auditoria_accesos" in permisos:
             btn = tk.Button(
                 self.root,
@@ -93,10 +98,6 @@ class MainApp:
         # Botón para cerrar sesión (regresar al login)
         tk.Button(self.root, text="Cerrar Sesión", fg="red", command=self.mostrar_login).pack(pady=30)
 
-    def abrir_modulo_1(self):
-        # Esta función abre tu ventana de subida
-        # Le pasamos 'self.usuario_actual' para que el módulo sepa quién está subiendo el archivo
-        UploadModule(self.root, self.usuario_actual)
 
 # --- PUNTO DE ENTRADA DEL PROGRAMA ---
 if __name__ == "__main__":

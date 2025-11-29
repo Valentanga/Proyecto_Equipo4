@@ -8,7 +8,7 @@ from db.connection import get_db  # Nuestra función de conexión
 
 # Clase del Módulo de Subida
 # Hereda de Toplevel para ser una ventana secundaria
-class UploadModule(tk.Toplevel):
+class Subida_modulo1(tk.Toplevel):
     
     def __init__(self, parent, usuario_data):
         super().__init__(parent)  # Inicializa la ventana secundaria
