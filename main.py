@@ -4,6 +4,8 @@ from tkinter import messagebox
 # Importamos las clases de nuestras otras ventanas (Login y Subida)
 from modules.login import LoginView
 from modules.modulo1_Subida import UploadModule
+from modules.auditoria_gui import VentanaAuditoria
+
 
 # Clase Principal que controla toda la aplicación
 class MainApp:
@@ -78,9 +80,15 @@ class MainApp:
 
         # 5. BOTÓN DE AUDITORÍA
         if "auditoria_accesos" in permisos:
-            btn = tk.Button(self.root, text="5. Auditoría de Accesos", bg="#FFEBEE", height=2,
-                            command=lambda: print(">> Módulo Auditoría: Pendiente de integración"))
+            btn = tk.Button(
+                self.root,
+                text="5. Auditoría de Accesos",
+                bg="#FFEBEE",
+                height=2,
+                command=lambda: VentanaAuditoria(self.root) 
+            )
             btn.pack(fill="x", padx=50, pady=5)
+
 
         # Botón para cerrar sesión (regresar al login)
         tk.Button(self.root, text="Cerrar Sesión", fg="red", command=self.mostrar_login).pack(pady=30)
