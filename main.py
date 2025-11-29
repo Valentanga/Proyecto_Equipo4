@@ -1,21 +1,20 @@
 # main.py
-import tkinter as tk
-from modules.auditoria_gui import VentanaAuditoria
+
+from modules.login_gui import VentanaLogin
+from modules.menu_gui import MenuPrincipal
+
 
 def main():
-    root = tk.Tk()
-    root.title("Archivo de Documentos Legales Digitales")
-    root.geometry("400x200")
+    login = VentanaLogin()
+    login.mainloop()
 
-    btn = tk.Button(
-        root,
-        text="Abrir Auditoría de Accesos (Admin)",
-        command=lambda: VentanaAuditoria(root)
-    )
-    btn.pack(expand=True, padx=20, pady=20)
+    usuario = login.usuario_logueado
+    if not usuario:
+        return  # no hubo login
 
-    root.mainloop()
+    app = MenuPrincipal(usuario)
+    app.mainloop()
+
 
 if __name__ == "__main__":
     main()
-
