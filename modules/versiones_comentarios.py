@@ -61,7 +61,7 @@ class VersionesComentariosGUI(tk.Frame):
             versiones = self.vers_repo.listar_por_documento(ObjectId(doc_id))
         except InvalidId:
             messagebox.showerror("Error",
-                                 "El Documento ID no es válido. Debe ser un ObjectId de 24 caracteres hexadecimales.")
+                                 "El Documento ID no es válido. ")
             return
 
     def on_select(self, _):
@@ -114,5 +114,6 @@ def abrir_modulo(master, db, usuario):
 
         gui = VersionesComentariosGUI(ventana, db, usuario)
         gui.pack(fill="both", expand=True)
+
 
         return ventana
