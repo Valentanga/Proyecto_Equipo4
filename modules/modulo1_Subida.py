@@ -1,11 +1,11 @@
-# --- IMPORTACIONES ---
+# --- IMPORTACIONES --- (agrega threading si no está)
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 import os
 from datetime import datetime
 from bson.binary import Binary
 from db.connection import get_db
-
+import threading  # ← ADD: Para async
 
 class Subida_modulo1(tk.Toplevel):
 
@@ -15,6 +15,9 @@ class Subida_modulo1(tk.Toplevel):
         self.title("Módulo 1: Registro Legal Detallado")
         self.geometry("700x650")
         self.ruta_archivo = None
+        self.categorias_dict = {}  # Inicial vacío
+        self.tipos_dict = {}  # Inicial vacío
+        self._cargado_inicial = False  # Flag para evitar warnings repetidos
 
         # --- GUI ---
 
@@ -28,27 +31,17 @@ class Subida_modulo1(tk.Toplevel):
         tk.Label(frame_form, text="Archivo PDF (*):", font=("bold")).grid(row=0, column=0, sticky="w")
         self.lbl_archivo = tk.Label(frame_form, text="Sin archivo seleccionado", fg="red")
         self.lbl_archivo.grid(row=0, column=1, sticky="w")
-        tk.Button(frame_form, text="Seleccionar", command=self.seleccionar).grid(row=0, column=2)
+        tk.Button(frame_form, text="Seleccionar", command=self.seleccionar).grid(row=0, column=2, padx=5)
 
         # 2. TIPO DE DOCUMENTO
         tk.Label(frame_form, text="Tipo de Documento (*):").grid(row=1, column=0, sticky="w", pady=5)
         self.combo_tipo = ttk.Combobox(frame_form, values=[], state="readonly", width=30)
-        self.combo_tipo.grid(row=1, column=1, columnspan=2, sticky="w")
+        self.combo_tipo.grid(row=1, column=1, columnspan=2, sticky="w")  # ← columnspan=2 ahora que no hay botón
 
-        # 2.1 CATEGORÍA
+        # 2.1 CATEGORÍA (sin botón)
         tk.Label(frame_form, text="Categoría (*):").grid(row=2, column=0, sticky="w", pady=5)
-
-        db = get_db()
-        cursor = db["categorias"].find({"activo": True})
-
-        # PARA MOSTRAR -> descripcion
-        # PARA GUARDAR -> slug
-        self.categorias_dict = {c["descripcion"]: c["slug"] for c in cursor}
-
-        self.combo_categoria = ttk.Combobox(frame_form,
-                                            values=list(self.categorias_dict.keys()),
-                                            state="readonly", width=30)
-        self.combo_categoria.grid(row=2, column=1, columnspan=2, sticky="w")
+        self.combo_categoria = ttk.Combobox(frame_form, values=[], state="readonly", width=30)
+        self.combo_categoria.grid(row=2, column=1, columnspan=2, sticky="w")  # ← columnspan=2, limpio
 
         self.combo_categoria.bind("<<ComboboxSelected>>", self.cargar_tipos)
 
@@ -88,6 +81,35 @@ class Subida_modulo1(tk.Toplevel):
         tk.Button(self, text="💾 GUARDAR EN BD", bg="#2E7D32", fg="white",
                   height=2, command=self.subir).pack(fill="x", padx=20, pady=20)
 
+        # ← ADD: Lanza carga async al final del init
+        self.cargar_categorias_async()
+
+    # ← NEW: Método async para cargar sin bloquear
+    def cargar_categorias_async(self):
+        def thread_carga():
+            # Query en background
+            db = get_db()
+            cursor = db["categorias"].find({"activo": True}).sort("descripcion", 1)
+            cats_list = list(cursor)
+            self.categorias_dict = {c["descripcion"]: c["slug"] for c in cats_list}
+            # Actualiza GUI en main thread
+            self.after(0, self._actualizar_gui_categorias)
+
+        threading.Thread(target=thread_carga, daemon=True).start()
+
+    # ← NEW: Actualiza combos en main thread
+    def _actualizar_gui_categorias(self):
+        self.combo_categoria["values"] = list(self.categorias_dict.keys())
+        if self.categorias_dict:
+            self.combo_categoria.current(0)
+            self.cargar_tipos()  # Auto-carga tipos
+            self._cargado_inicial = True
+        else:
+            # Solo warn si no cargado antes
+            if not self._cargado_inicial:
+                messagebox.showwarning("Sin Datos", "No hay categorías activas. Ve a Gestión y crea algunas.")
+                self._cargado_inicial = True
+
     # -------------------------
     def seleccionar(self):
         f = filedialog.askopenfilename(filetypes=[("PDF", "*.pdf")])
@@ -97,28 +119,33 @@ class Subida_modulo1(tk.Toplevel):
 
     # -------------------------
     def cargar_tipos(self, event=None):
-
         categoria_visible = self.combo_categoria.get()
-        categoria_slug = self.categorias_dict[categoria_visible]
+        if not categoria_visible:
+            return
+        categoria_slug = self.categorias_dict.get(categoria_visible)
+        if not categoria_slug:
+            return
 
+        # ← Para tipos, también hazlo async si quieres (pero con 1 cat es overkill)
         db = get_db()
         cat = db["categorias"].find_one({"slug": categoria_slug})
+        if not cat:
+            messagebox.showerror("Error", "Categoría no encontrada. Recarga la app.")
+            return
 
-        tipos = [
-            t for t in cat.get("tipos", [])
-            if t.get("activo", True)
-        ]
-
-        # mapa: mostrar nombre -> slug
+        tipos = [t for t in cat.get("tipos", []) if t.get("activo", True)]
         self.tipos_dict = {t["nombre"]: t["slug"] for t in tipos}
-
         self.combo_tipo["values"] = list(self.tipos_dict.keys())
 
         if tipos:
             self.combo_tipo.current(0)
+        else:
+            self.combo_tipo.set("")
+            messagebox.showwarning("Sin Tipos", f"'{categoria_visible}' no tiene tipos activos. Agrega en Gestión.")
 
     # -------------------------
     def subir(self):
+        # ... (igual que antes, sin cambios en validaciones)
         titulo = self.entry_titulo.get().strip()
         actores = self.txt_actores.get("1.0", tk.END).strip()
         fecha = self.entry_fecha.get().strip()
@@ -140,13 +167,13 @@ class Subida_modulo1(tk.Toplevel):
             messagebox.showwarning("Falta Fecha", "La fecha es obligatoria.")
             return
         if not hora_numeros.replace(":", "").isdigit():
-            messagebox.showerror("Formato Incorrecto", "La hora debe ser numérica.")
+            messagebox.showerror("Formato Incorrecto", "La hora debe ser numérica (ej: 12:00).")
             return
         if not categoria_visible:
             messagebox.showwarning("Falta Categoría", "Selecciona una categoría.")
             return
-        if not tipo_visible:
-            messagebox.showwarning("Falta Tipo", "Selecciona un tipo.")
+        if not tipo_visible or tipo_visible not in self.tipos_dict:
+            messagebox.showwarning("Falta Tipo", "Selecciona un tipo válido (elige categoría primero).")
             return
 
         categoria_slug = self.categorias_dict[categoria_visible]
@@ -178,4 +205,4 @@ class Subida_modulo1(tk.Toplevel):
             self.destroy()
 
         except Exception as e:
-            messagebox.showerror("Error", f"Ocurrió un error al guardar:\n{e}")
+            messagebox.showerror("Error", f"Ocurrió un error al guardar:\n{str(e)}")
