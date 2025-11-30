@@ -5,6 +5,7 @@ from tkinter import messagebox
 from modules.login import LoginView
 from modules.modulo1_Subida import Subida_modulo1
 from modules.auditoria_gui import VentanaAuditoria
+from modules.gestion_categorias import GestionCategorias
 
 
 # Clase Principal que controla toda la aplicación
@@ -74,7 +75,7 @@ class MainApp:
         # 3. BOTÓN DE  MODULO 3 CATEGORÍAS
         if "gestion_categorias" in permisos:
             btn = tk.Button(self.root, text="3. Gestión de Categorías", bg="#E8F5E9", height=2,
-                            command=lambda: print(">> Módulo Categorías: Pendiente de integración"))
+                            command=lambda:  GestionCategorias(self.root, self.usuario_actual))
             btn.pack(fill="x", padx=50, pady=5)
 
         # 4. BOTÓN DE  MODULO 4 VERSIONES
