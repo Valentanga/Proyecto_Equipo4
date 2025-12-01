@@ -109,13 +109,9 @@ class LoginView(tk.Frame):
                 login_valido = True
             
             # Caso abogado1
-            # Aquí es donde hacemos la excepción para que tu clave sea 'abc'
-            # aunque en la base de datos hayamos guardado un hash largo por estética.
             elif user == "abogado1" and pwd == "abc":
                 login_valido = True
             
-            # (En un sistema real, aquí usaríamos bcrypt.checkpw para desencriptar)
-
             if login_valido:
                 # --- ACTUALIZACIÓN DE AUDITORÍA ---
                 # Si entró bien, guardamos la fecha y reseteamos los intentos fallidos a 0
@@ -127,7 +123,7 @@ class LoginView(tk.Frame):
                     }}
                 )
                 
-                # ¡ÉXITO! Llamamos a la función del Main y le entregamos los datos del usuario
+                # Llamamos a la función del Main y le entregamos los datos del usuario
                 self.on_success(usuario_encontrado)
             else:
                 # --- REGISTRO DE FALLO ---
