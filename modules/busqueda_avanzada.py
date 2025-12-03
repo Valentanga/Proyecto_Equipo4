@@ -50,6 +50,21 @@ class BusquedaAvanzada:
             fg="#BDC3C7"
         ).pack()
 
+        # Botón de regreso en el header
+        tk.Button(
+            header_frame,
+            text="← Volver",
+            font=("Segoe UI", 9, "bold"),
+            bg=COLOR_HEADER,
+            fg="white",
+            activebackground="#34495E",
+            activeforeground="white",
+            relief="flat",
+            cursor="hand2",
+            bd=0,
+            command=self.volver_menu
+        ).place(x=10, y=10)
+
         # --- BODY FRAME ---
         body_frame = tk.Frame(self.root, bg=COLOR_FONDO)
         body_frame.pack(fill="both", expand=True, padx=30, pady=20)
