@@ -1,54 +1,51 @@
 # --- IMPORTACIONES ---
-import tkinter as tk  # Librería principal para la interfaz gráfica
-from tkinter import filedialog, messagebox, ttk  # Herramientas extra
-import os  # Para manejar rutas de archivos
-from datetime import datetime  # Para guardar fecha
-from bson.binary import Binary  # Para guardar PDF en Mongo
-from bson.objectid import ObjectId # Para buscar por ID
-from db.connection import get_db  # Conexión
-import threading  # Carga asíncrona
+import tkinter as tk  # Librería principal
+from tkinter import filedialog, messagebox, ttk
+import os
+from datetime import datetime
+from bson.binary import Binary
+from bson.objectid import ObjectId
+from db.connection import get_db
+import threading
 
-# >>> AUDITORÍA: servicio para registrar acciones
+# >>> NUEVA IMPORTACIÓN PARA EL CALENDARIO
+from tkcalendar import DateEntry 
+
+# >>> AUDITORÍA
 from models.auditoria_service import AuditoriaService
 
-# --- CONFIGURACIÓN DE DISEÑO (Igual al Main) ---
-COLOR_FONDO = "#F4F6F7"       # Gris muy claro
-COLOR_HEADER = "#2C3E50"      # Azul Marino Oscuro (Encabezados)
+# --- CONFIGURACIÓN DE DISEÑO ---
+COLOR_FONDO = "#F4F6F7"
+COLOR_HEADER = "#2C3E50"
 COLOR_TEXTO_HEADER = "white"
-COLOR_BTN = "#3498DB"         # Azul Brillante (Botones de acción)
+COLOR_BTN = "#3498DB"
 COLOR_TEXTO_BTN = "white"
 FUENTE_TITULO = ("Segoe UI", 16, "bold")
 FUENTE_LABEL = ("Segoe UI", 10, "bold")
 FUENTE_NORMAL = ("Segoe UI", 10)
 
-# Clase del Módulo de Subida
-# NOTA: Mantenemos el nombre 'Subida_modulo1' para compatibilidad con tu Main
 class Subida_modulo1(tk.Toplevel):
     
     def __init__(self, parent, usuario_data):
         super().__init__(parent)
         self.usuario = usuario_data
-        
-        # >>> AUDITORÍA: instancia del servicio
         self.aud = AuditoriaService()
 
         # Configuración de la ventana
         self.title("Módulo 1: Registro y Consulta de Documentos")
-        self.geometry("900x750")
-        self.configure(bg=COLOR_FONDO) # Color de fondo general
+        self.geometry("900x700") # Reduje un poco la altura ya que quitamos la hora
+        self.configure(bg=COLOR_FONDO)
         
-        # Variables de estado
         self.ruta_archivo = None
         self.categorias_dict = {}
         self.tipos_dict = {}
         self._cargado_inicial = False
 
-        # --- DISEÑO DE LA INTERFAZ (GUI) ---
+        # --- DISEÑO DE LA INTERFAZ ---
 
-        # 1. ENCABEZADO PRINCIPAL (Estilo Main)
+        # 1. ENCABEZADO
         header_frame = tk.Frame(self, bg=COLOR_HEADER, pady=15)
         header_frame.pack(fill="x")
-        
         tk.Label(header_frame, text="REGISTRO DE EXPEDIENTE / DOCUMENTO",
                  font=FUENTE_TITULO, bg=COLOR_HEADER, fg=COLOR_TEXTO_HEADER).pack()
 
@@ -57,7 +54,6 @@ class Subida_modulo1(tk.Toplevel):
         frame_form.pack(fill="x")
 
         # --- CAMPOS DEL FORMULARIO ---
-        # Nota: Agregamos bg=COLOR_FONDO a los Labels para que combinen
         
         # Archivo
         tk.Label(frame_form, text="Archivo PDF (*):", font=FUENTE_LABEL, bg=COLOR_FONDO).grid(row=0, column=0, sticky="w", pady=5)
@@ -89,27 +85,18 @@ class Subida_modulo1(tk.Toplevel):
         self.txt_actores = tk.Text(frame_form, height=3, width=50, font=FUENTE_NORMAL)
         self.txt_actores.grid(row=4, column=1, columnspan=2, rowspan=2, pady=5)
 
-        # Fecha
-        tk.Label(frame_form, text="Fecha Evento (*):", font=FUENTE_LABEL, bg=COLOR_FONDO).grid(row=6, column=0, sticky="w", pady=5)
-        self.entry_fecha = tk.Entry(frame_form, width=15, font=FUENTE_NORMAL)
-        self.entry_fecha.insert(0, datetime.now().strftime("%Y-%m-%d"))
-        self.entry_fecha.grid(row=6, column=1, sticky="w")
+        # Fecha Vencimiento (CON CALENDARIO)
+        tk.Label(frame_form, text="Fecha Vencimiento (*):", font=FUENTE_LABEL, bg=COLOR_FONDO).grid(row=6, column=0, sticky="w", pady=5)
+        
+        # Usamos DateEntry de tkcalendar
+        self.cal_fecha = DateEntry(frame_form, width=15, background='darkblue',
+                                   foreground='white', borderwidth=2, 
+                                   font=FUENTE_NORMAL, date_pattern='yyyy-mm-dd')
+        self.cal_fecha.grid(row=6, column=1, sticky="w")
 
-        # Hora
-        tk.Label(frame_form, text="Hora (*):", font=FUENTE_LABEL, bg=COLOR_FONDO).grid(row=7, column=0, sticky="w", pady=5)
-        frame_hora = tk.Frame(frame_form, bg=COLOR_FONDO)
-        frame_hora.grid(row=7, column=1, sticky="w")
-        
-        self.entry_hora = tk.Entry(frame_hora, width=8, font=FUENTE_NORMAL)
-        self.entry_hora.pack(side="left")
-        
-        self.combo_am_pm = ttk.Combobox(frame_hora, values=["AM", "PM"], width=5, state="readonly")
-        self.combo_am_pm.current(0)
-        self.combo_am_pm.pack(side="left", padx=5)
-        
-        tk.Label(frame_hora, text="(Ej: 04:30)", fg="gray", bg=COLOR_FONDO, font=("Segoe UI", 8)).pack(side="left")
+        # NOTA: He eliminado completamente la fila 7 (Hora)
 
-        # BOTÓN GUARDAR (Estilo Main)
+        # BOTÓN GUARDAR
         tk.Button(self, text="💾  GUARDAR DOCUMENTO", 
                   bg=COLOR_BTN, fg=COLOR_TEXTO_BTN, font=("Segoe UI", 11, "bold"),
                   relief="flat", cursor="hand2", pady=5,
@@ -118,8 +105,6 @@ class Subida_modulo1(tk.Toplevel):
         # ---------------------------------------------------------
         # 2. SECCIÓN DE TABLA (VISOR)
         # ---------------------------------------------------------
-        
-        # Título de sección (Barra oscura igual que el header)
         lbl_tabla = tk.Label(self, text="DOCUMENTOS REGISTRADOS (DOBLE CLIC PARA ABRIR)", 
                              bg=COLOR_HEADER, fg=COLOR_TEXTO_HEADER, font=("Segoe UI", 10, "bold"), pady=5)
         lbl_tabla.pack(fill="x", pady=(10,0))
@@ -127,47 +112,35 @@ class Subida_modulo1(tk.Toplevel):
         frame_tabla = tk.Frame(self, bg=COLOR_FONDO)
         frame_tabla.pack(fill="both", expand=True, padx=20, pady=10)
 
-        # Configuración de columnas
         cols = ("ID", "Titulo", "Tipo", "Fecha")
         self.tree = ttk.Treeview(frame_tabla, columns=cols, show="headings", height=8)
         
-        # Estilo de la tabla (opcional, para que se vea mejor)
         style = ttk.Style()
         style.configure("Treeview.Heading", font=("Segoe UI", 10, "bold"))
         style.configure("Treeview", font=("Segoe UI", 9))
 
-        # Encabezados
         self.tree.heading("ID", text="ID")
         self.tree.heading("Titulo", text="Título / Expediente")
         self.tree.heading("Tipo", text="Tipo")
-        self.tree.heading("Fecha", text="Fecha")
+        self.tree.heading("Fecha", text="F. Vencimiento") # Actualicé el encabezado
 
-        # Ancho de columnas (Ocultamos ID)
         self.tree.column("ID", width=0, stretch=tk.NO) 
         self.tree.column("Titulo", width=300)
         self.tree.column("Tipo", width=200)
         self.tree.column("Fecha", width=100)
 
-        # Scrollbar
         scrollbar = ttk.Scrollbar(frame_tabla, orient="vertical", command=self.tree.yview)
         self.tree.configure(yscrollcommand=scrollbar.set)
         
         self.tree.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
 
-        # Evento Doble Clic
         self.tree.bind("<Double-1>", self.abrir_documento)
 
-        # >>> AUDITORÍA: botón para descarga explícita
         tk.Button(
-            self,
-            text="⬇  Descargar PDF seleccionado",
-            bg=COLOR_BTN,
-            fg=COLOR_TEXTO_BTN,
-            font=("Segoe UI", 9, "bold"),
-            relief="flat",
-            cursor="hand2",
-            command=self.descargar_documento
+            self, text="⬇  Descargar PDF seleccionado",
+            bg=COLOR_BTN, fg=COLOR_TEXTO_BTN, font=("Segoe UI", 9, "bold"),
+            relief="flat", cursor="hand2", command=self.descargar_documento
         ).pack(fill="x", padx=40, pady=(0, 15))
 
         # --- INICIO ---
@@ -175,9 +148,7 @@ class Subida_modulo1(tk.Toplevel):
         self.cargar_tabla()
 
     # --- LÓGICA DE TABLA ---
-
     def cargar_tabla(self):
-        """ Consulta MongoDB y llena la tabla """
         for item in self.tree.get_children():
             self.tree.delete(item)
             
@@ -192,14 +163,12 @@ class Subida_modulo1(tk.Toplevel):
                 str(doc["_id"]), 
                 doc.get("titulo", "Sin Título"),
                 tipo_mostrar,
-                doc.get("fecha_evento", "")
+                doc.get("fecha_evento", "") # Usamos fecha_evento como vencimiento
             ))
 
     def abrir_documento(self, event):
-        """ Abre el PDF seleccionado """
         seleccion = self.tree.selection()
-        if not seleccion:
-            return
+        if not seleccion: return
         
         item = self.tree.item(seleccion)
         doc_id = item["values"][0] 
@@ -214,7 +183,6 @@ class Subida_modulo1(tk.Toplevel):
                     f.write(doc["archivo_pdf"])
                 os.startfile(nombre_temp)
 
-                # >>> AUDITORÍA: registrar que alguien vio el documento
                 try:
                     self.aud.registrar_evento(
                         usuario=self.usuario.get("username", ""),
@@ -224,20 +192,17 @@ class Subida_modulo1(tk.Toplevel):
                         documento_nombre=doc.get("titulo", "Sin Título")
                     )
                 except Exception as e:
-                    print("Error registrando VER_DOCUMENTO:", e)
+                    print("Error auditoria:", e)
 
             except Exception as e:
                 messagebox.showerror("Error", f"No se pudo abrir el PDF:\n{e}")
         else:
             messagebox.showerror("Aviso", "Sin archivo PDF válido.")
 
-    # >>> AUDITORÍA + DESCARGA
-
     def descargar_documento(self):
-        """Descarga el PDF seleccionado a una ruta elegida por el usuario."""
         seleccion = self.tree.selection()
         if not seleccion:
-            messagebox.showwarning("Selecciona", "Selecciona un documento en la tabla.")
+            messagebox.showwarning("Selecciona", "Selecciona un documento.")
             return
 
         item = self.tree.item(seleccion)
@@ -252,21 +217,16 @@ class Subida_modulo1(tk.Toplevel):
 
         nombre_sugerido = (doc.get("titulo", "documento") or "documento") + ".pdf"
         ruta_destino = filedialog.asksaveasfilename(
-            title="Guardar documento como...",
-            defaultextension=".pdf",
-            filetypes=[("PDF", "*.pdf")],
-            initialfile=nombre_sugerido
+            title="Guardar documento como...", defaultextension=".pdf",
+            filetypes=[("PDF", "*.pdf")], initialfile=nombre_sugerido
         )
-        if not ruta_destino:
-            return  # canceló
+        if not ruta_destino: return
 
         try:
             with open(ruta_destino, "wb") as f:
                 f.write(doc["archivo_pdf"])
-
             messagebox.showinfo("Descarga completa", f"Documento guardado en:\n{ruta_destino}")
-
-            # Registrar en auditoría la descarga
+            
             try:
                 self.aud.registrar_evento(
                     usuario=self.usuario.get("username", ""),
@@ -275,14 +235,11 @@ class Subida_modulo1(tk.Toplevel):
                     documento_id=str(doc_id),
                     documento_nombre=doc.get("titulo", "Sin Título")
                 )
-            except Exception as e:
-                print("Error registrando DESCARGAR_DOCUMENTO:", e)
-
+            except Exception: pass
         except Exception as e:
-            messagebox.showerror("Error", f"No se pudo guardar el PDF:\n{e}")
+            messagebox.showerror("Error", f"No se pudo guardar:\n{e}")
 
-    # --- LÓGICA TÉCNICA (Hilos) ---
-
+    # --- LÓGICA TÉCNICA ---
     def cargar_categorias_async(self):
         def thread_carga():
             db = get_db()
@@ -290,7 +247,6 @@ class Subida_modulo1(tk.Toplevel):
             cursor = db["categorias"].find({"activo": True}).sort("descripcion", 1)
             self.categorias_dict = {c["descripcion"]: c["slug"] for c in cursor}
             self.after(0, self._actualizar_gui_categorias)
-
         threading.Thread(target=thread_carga, daemon=True).start()
 
     def _actualizar_gui_categorias(self):
@@ -319,27 +275,25 @@ class Subida_modulo1(tk.Toplevel):
         f = filedialog.askopenfilename(filetypes=[("PDF", "*.pdf")])
         if f:
             self.ruta_archivo = f
-            self.lbl_archivo.config(text=os.path.basename(f), fg="#27AE60") # Verde bonito
+            self.lbl_archivo.config(text=os.path.basename(f), fg="#27AE60")
 
     # --- GUARDADO ---
-
     def subir(self):
         titulo = self.entry_titulo.get().strip()
         actores = self.txt_actores.get("1.0", tk.END).strip()
-        fecha = self.entry_fecha.get().strip()
-        hora_num = self.entry_hora.get().strip()
-        am_pm = self.combo_am_pm.get()
+        
+        # OBTENER FECHA DEL CALENDARIO
+        fecha = self.cal_fecha.get_date() # Retorna objeto date
+        fecha_str = fecha.strftime("%Y-%m-%d") # Lo convertimos a string para BD
+        
         cat_sel = self.combo_categoria.get()
         tipo_sel = self.combo_tipo.get()
 
         if not self.ruta_archivo:
             messagebox.showwarning("Falta", "Selecciona un PDF.")
             return
-        if not titulo or not actores or not fecha:
+        if not titulo or not actores:
             messagebox.showwarning("Falta", "Llenar campos obligatorios.")
-            return
-        if not hora_num.replace(":", "").isdigit():
-            messagebox.showerror("Error", "Hora inválida.")
             return
         if not cat_sel or not tipo_sel:
             messagebox.showwarning("Falta", "Selecciona categoría y tipo.")
@@ -353,18 +307,16 @@ class Subida_modulo1(tk.Toplevel):
             with open(self.ruta_archivo, 'rb') as f:
                 binary_data = Binary(f.read())
 
-            hora_completa = f"{hora_num} {am_pm}"
-
             doc_data = {
                 "titulo": titulo,
                 "categoria": cat_slug,
                 "tipo": tipo_slug,
                 "actores_involucrados": actores,
-                "fecha_evento": fecha,
-                "hora_duracion": hora_completa,
+                "fecha_evento": fecha_str,  # Guardamos la fecha del calendario
                 "subido_por": self.usuario["username"],
                 "fecha_subida": datetime.utcnow(),
                 "archivo_pdf": binary_data
+                # "hora_duracion": ELIMINADO
             }
 
             db["documentos"].insert_one(doc_data)
@@ -378,6 +330,9 @@ class Subida_modulo1(tk.Toplevel):
     def limpiar_formulario(self):
         self.entry_titulo.delete(0, tk.END)
         self.txt_actores.delete("1.0", tk.END)
-        self.entry_hora.delete(0, tk.END)
+        
+        # Reiniciar el calendario a hoy
+        self.cal_fecha.set_date(datetime.now()) 
+        
         self.ruta_archivo = None
         self.lbl_archivo.config(text="Sin archivo seleccionado", fg="#E74C3C")
