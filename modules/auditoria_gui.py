@@ -10,7 +10,7 @@ COLOR_HEADER = "#2C3E50"      # Azul marino oscuro (profesional)
 COLOR_TEXTO_HEADER = "white"
 COLOR_BTN = "#3498DB"         # Azul brillante para botones
 COLOR_TEXTO_BTN = "white"
-COLOR_LOGOUT = "#E74C3C"      # Rojo suave (por si luego agregas botón de cerrar)
+COLOR_LOGOUT = "#E74C3C"      # (Por si luego agregas botón de cerrar)
 FUENTE_TITULO = ("Segoe UI", 16, "bold")
 FUENTE_NORMAL = ("Segoe UI", 11)
 FUENTE_BTN = ("Segoe UI", 10, "bold")
@@ -25,7 +25,7 @@ class VentanaAuditoria(tk.Toplevel):
     def __init__(self, master=None, auditoria_service=None):
         super().__init__(master)
         self.title("Auditoría de accesos")
-        self.geometry("800x400")
+        self.geometry("900x450")
         self.configure(bg=COLOR_FONDO)
 
         # Servicio de auditoría (si no te pasan uno, crea uno nuevo)
@@ -79,10 +79,24 @@ class VentanaAuditoria(tk.Toplevel):
             font=FUENTE_NORMAL
         ).grid(row=0, column=2, sticky="w")
 
+        # 👇 Aquí agregamos TODAS las acciones que ya aparecen en tus logs
+        acciones_posibles = [
+            "",
+            "VER_DOCUMENTO",
+            "DESCARGAR_DOCUMENTO",
+            "CREAR_CATEGORIA",
+            "EDITAR_CATEGORIA",
+            "ELIMINAR_CATEGORIA",
+            "AGREGAR_TIPO",
+            "EDITAR_TIPO",
+            "ELIMINAR_TIPO",
+            "AGREGAR_VERSION",
+        ]
+
         self.combo_accion = ttk.Combobox(
             filtro_frame,
-            values=["", "VER_DOCUMENTO", "DESCARGAR_DOCUMENTO"],
-            width=22,
+            values=acciones_posibles,
+            width=25,
             state="readonly"
         )
         self.combo_accion.grid(row=0, column=3, padx=5, pady=2)
@@ -124,8 +138,8 @@ class VentanaAuditoria(tk.Toplevel):
         self.tree.column("fecha", width=160)
         self.tree.column("usuario", width=120)
         self.tree.column("rol", width=120)
-        self.tree.column("accion", width=150)
-        self.tree.column("documento", width=220)
+        self.tree.column("accion", width=180)
+        self.tree.column("documento", width=260)
 
         scrollbar = ttk.Scrollbar(
             tabla_frame,
