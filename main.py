@@ -6,6 +6,8 @@ from modules.login import LoginView
 from modules.modulo1_Subida import Subida_modulo1
 from modules.auditoria_gui import VentanaAuditoria
 from modules.gestion_categorias import GestionCategorias
+from modules.busqueda_avanzada import BusquedaAvanzada
+
 
 
 # Clase Principal que controla toda la aplicación
@@ -68,8 +70,7 @@ class MainApp:
         # 2. BOTÓN DE MODULO 2 BÚSQUEDA
         if "busqueda_avanzada" in permisos:
             btn = tk.Button(self.root, text="2. Búsqueda Avanzada", bg="#F3E5F5", height=2,
-                            # Usamos lambda para imprimir en consola sin hacer nada visual (simulación)
-                            command=lambda: print(">> Módulo Búsqueda: Pendiente de integración"))
+                            command=lambda: BusquedaAvanzada(self.root, self.usuario_actual))
             btn.pack(fill="x", padx=50, pady=5)
 
         # 3. BOTÓN DE  MODULO 3 CATEGORÍAS
