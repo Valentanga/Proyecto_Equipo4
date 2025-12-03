@@ -8,6 +8,9 @@ from bson.objectid import ObjectId # Para buscar por ID
 from db.connection import get_db  # Conexión
 import threading  # Carga asíncrona
 
+# >>> AUDITORÍA: servicio para registrar acciones
+from models.auditoria_service import AuditoriaService
+
 # --- CONFIGURACIÓN DE DISEÑO (Igual al Main) ---
 COLOR_FONDO = "#F4F6F7"       # Gris muy claro
 COLOR_HEADER = "#2C3E50"      # Azul Marino Oscuro (Encabezados)
@@ -26,6 +29,9 @@ class Subida_modulo1(tk.Toplevel):
         super().__init__(parent)
         self.usuario = usuario_data
         
+        # >>> AUDITORÍA: instancia del servicio
+        self.aud = AuditoriaService()
+
         # Configuración de la ventana
         self.title("Módulo 1: Registro y Consulta de Documentos")
         self.geometry("900x750")
@@ -152,6 +158,18 @@ class Subida_modulo1(tk.Toplevel):
         # Evento Doble Clic
         self.tree.bind("<Double-1>", self.abrir_documento)
 
+        # >>> AUDITORÍA: botón para descarga explícita
+        tk.Button(
+            self,
+            text="⬇  Descargar PDF seleccionado",
+            bg=COLOR_BTN,
+            fg=COLOR_TEXTO_BTN,
+            font=("Segoe UI", 9, "bold"),
+            relief="flat",
+            cursor="hand2",
+            command=self.descargar_documento
+        ).pack(fill="x", padx=40, pady=(0, 15))
+
         # --- INICIO ---
         self.cargar_categorias_async()
         self.cargar_tabla()
@@ -180,7 +198,8 @@ class Subida_modulo1(tk.Toplevel):
     def abrir_documento(self, event):
         """ Abre el PDF seleccionado """
         seleccion = self.tree.selection()
-        if not seleccion: return
+        if not seleccion:
+            return
         
         item = self.tree.item(seleccion)
         doc_id = item["values"][0] 
@@ -194,10 +213,73 @@ class Subida_modulo1(tk.Toplevel):
                 with open(nombre_temp, "wb") as f:
                     f.write(doc["archivo_pdf"])
                 os.startfile(nombre_temp)
+
+                # >>> AUDITORÍA: registrar que alguien vio el documento
+                try:
+                    self.aud.registrar_evento(
+                        usuario=self.usuario.get("username", ""),
+                        rol=self.usuario.get("rol", ""),
+                        accion="VER_DOCUMENTO",
+                        documento_id=str(doc_id),
+                        documento_nombre=doc.get("titulo", "Sin Título")
+                    )
+                except Exception as e:
+                    print("Error registrando VER_DOCUMENTO:", e)
+
             except Exception as e:
                 messagebox.showerror("Error", f"No se pudo abrir el PDF:\n{e}")
         else:
             messagebox.showerror("Aviso", "Sin archivo PDF válido.")
+
+    # >>> AUDITORÍA + DESCARGA
+
+    def descargar_documento(self):
+        """Descarga el PDF seleccionado a una ruta elegida por el usuario."""
+        seleccion = self.tree.selection()
+        if not seleccion:
+            messagebox.showwarning("Selecciona", "Selecciona un documento en la tabla.")
+            return
+
+        item = self.tree.item(seleccion)
+        doc_id = item["values"][0]
+
+        db = get_db()
+        doc = db["documentos"].find_one({"_id": ObjectId(doc_id)})
+
+        if not doc or "archivo_pdf" not in doc:
+            messagebox.showerror("Aviso", "Sin archivo PDF válido.")
+            return
+
+        nombre_sugerido = (doc.get("titulo", "documento") or "documento") + ".pdf"
+        ruta_destino = filedialog.asksaveasfilename(
+            title="Guardar documento como...",
+            defaultextension=".pdf",
+            filetypes=[("PDF", "*.pdf")],
+            initialfile=nombre_sugerido
+        )
+        if not ruta_destino:
+            return  # canceló
+
+        try:
+            with open(ruta_destino, "wb") as f:
+                f.write(doc["archivo_pdf"])
+
+            messagebox.showinfo("Descarga completa", f"Documento guardado en:\n{ruta_destino}")
+
+            # Registrar en auditoría la descarga
+            try:
+                self.aud.registrar_evento(
+                    usuario=self.usuario.get("username", ""),
+                    rol=self.usuario.get("rol", ""),
+                    accion="DESCARGAR_DOCUMENTO",
+                    documento_id=str(doc_id),
+                    documento_nombre=doc.get("titulo", "Sin Título")
+                )
+            except Exception as e:
+                print("Error registrando DESCARGAR_DOCUMENTO:", e)
+
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo guardar el PDF:\n{e}")
 
     # --- LÓGICA TÉCNICA (Hilos) ---
 
