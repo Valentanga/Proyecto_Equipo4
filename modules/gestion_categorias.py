@@ -4,65 +4,95 @@ from tkinter import ttk, messagebox, simpledialog
 from models.categorias_service import CategoriasService
 from models.auditoria_service import AuditoriaService
 
+# Colores y fuentes para emular el diseño web
+COLOR_FONDO = "#F4F6F7"       # Gris muy claro (Casi blanco)
+COLOR_HEADER = "#2C3E50"      # Azul Marino Oscuro (Profesional)
+COLOR_TEXTO_HEADER = "white"
+COLOR_BTN = "#3498DB"         # Azul brillante para botones
+COLOR_TEXTO_BTN = "white"
+COLOR_LOGOUT = "#E74C3C"      # Rojo suave para salir (no usado aquí, pero incluido)
+FUENTE_TITULO = ("Segoe UI", 16, "bold")
+FUENTE_NORMAL = ("Segoe UI", 11)
+FUENTE_BTN = ("Segoe UI", 10, "bold")
+
 class GestionCategorias:
     def __init__(self, parent, usuario):
         self.usuario = usuario
         self.parent = parent
         self.window = tk.Toplevel(parent)
         self.window.title("Gestión de Categorías y Tipos")
-        self.window.geometry("900x520")
+        self.window.geometry("1200x600")
         self.window.transient(parent)
         self.window.grab_set()
+        self.window.configure(bg=COLOR_FONDO)
 
         self.service = CategoriasService()
         self.aud = AuditoriaService()
 
+        # Configurar estilo para ttk (emular diseño web)
+        self.style = ttk.Style()
+        self.style.theme_use('default')  # Base simple para custom
+        self.style.configure("Treeview", background=COLOR_FONDO, foreground="black", fieldbackground=COLOR_FONDO, borderwidth=1, font=FUENTE_NORMAL)
+        self.style.configure("Treeview.Heading", background=COLOR_HEADER, foreground=COLOR_TEXTO_HEADER, font=FUENTE_TITULO, relief="flat")
+        self.style.map("Treeview", background=[('selected', COLOR_BTN)])
+        self.style.map("Treeview.Heading", background=[('active', COLOR_BTN)])
+
         # Layout: left = categorias, right = tipos
-        left = tk.Frame(self.window, width=360, padx=10, pady=10)
+        left = tk.Frame(self.window, bg=COLOR_FONDO, width=450, padx=10, pady=10)
         left.pack(side="left", fill="y")
-        right = tk.Frame(self.window, padx=10, pady=10)
+        right = tk.Frame(self.window, bg=COLOR_FONDO, padx=10, pady=10)
         right.pack(side="right", expand=True, fill="both")
 
         # --- LEFT: CATEGORÍAS ---
-        tk.Label(left, text="Categorías", font=("Arial", 12, "bold")).pack(anchor="w")
+        # Header frame para emular barra oscura
+        header_left = tk.Frame(left, bg=COLOR_HEADER, height=40)
+        header_left.pack(fill="x", pady=(0, 5))
+        header_left.pack_propagate(False)
+        tk.Label(header_left, text="Categorías", bg=COLOR_HEADER, fg=COLOR_TEXTO_HEADER, font=FUENTE_TITULO).pack(anchor="w", padx=10, pady=10)
+
         cols = ("slug", "descripcion", "activo")
-        self.tree_cat = ttk.Treeview(left, columns=cols, show="headings", height=20)
-        self.tree_cat.heading("slug", text="Slug (nombre interno)")
-        self.tree_cat.heading("descripcion", text="Descripción (visible)")
+        self.tree_cat = ttk.Treeview(left, columns=cols, show="headings", height=20, style="Treeview")
+        self.tree_cat.heading("slug", text="Slug")
+        self.tree_cat.heading("descripcion", text="Descripción")
         self.tree_cat.heading("activo", text="Activo")
-        self.tree_cat.column("slug", width=120, anchor="w")
-        self.tree_cat.column("descripcion", width=160, anchor="w")
-        self.tree_cat.column("activo", width=50, anchor="center")
+        self.tree_cat.column("slug", width=150, anchor="w")
+        self.tree_cat.column("descripcion", width=200, anchor="w")
+        self.tree_cat.column("activo", width=100, anchor="center")
         self.tree_cat.pack(fill="y", expand=True)
         self.tree_cat.bind("<<TreeviewSelect>>", self._on_categoria_select)
 
-        btnf = tk.Frame(left)
+        btnf = tk.Frame(left, bg=COLOR_FONDO)
         btnf.pack(pady=6, anchor="w")
-        tk.Button(btnf, text="Nueva", width=8, command=self.nueva_categoria).grid(row=0, column=0, padx=3)
-        tk.Button(btnf, text="Editar", width=8, command=self.editar_categoria).grid(row=0, column=1, padx=3)
-        tk.Button(btnf, text="Eliminar", width=8, command=self.eliminar_categoria).grid(row=0, column=2, padx=3)
-        tk.Button(btnf, text="Refrescar", width=8, command=self.cargar_categorias).grid(row=0, column=3, padx=3)
+        tk.Button(btnf, text="Nueva", width=8, command=self.nueva_categoria, bg=COLOR_BTN, fg=COLOR_TEXTO_BTN, font=FUENTE_BTN, relief="flat", bd=0).grid(row=0, column=0, padx=3)
+        tk.Button(btnf, text="Editar", width=8, command=self.editar_categoria, bg=COLOR_BTN, fg=COLOR_TEXTO_BTN, font=FUENTE_BTN, relief="flat", bd=0).grid(row=0, column=1, padx=3)
+        tk.Button(btnf, text="Eliminar", width=8, command=self.eliminar_categoria, bg=COLOR_BTN, fg=COLOR_TEXTO_BTN, font=FUENTE_BTN, relief="flat", bd=0).grid(row=0, column=2, padx=3)
+        tk.Button(btnf, text="Refrescar", width=8, command=self.cargar_categorias, bg=COLOR_BTN, fg=COLOR_TEXTO_BTN, font=FUENTE_BTN, relief="flat", bd=0).grid(row=0, column=3, padx=3)
 
         # --- RIGHT: TIPOS de la categoría seleccionada ---
-        tk.Label(right, text="Tipos de Documento", font=("Arial", 12, "bold")).pack(anchor="w")
+        # Header frame para emular barra oscura
+        header_right = tk.Frame(right, bg=COLOR_HEADER, height=40)
+        header_right.pack(fill="x", pady=(0, 5))
+        header_right.pack_propagate(False)
+        tk.Label(header_right, text="Tipos de Documento", bg=COLOR_HEADER, fg=COLOR_TEXTO_HEADER, font=FUENTE_TITULO).pack(anchor="w", padx=10, pady=10)
+
         cols2 = ("id", "nombre", "descripcion", "activo")
-        self.tree_tipos = ttk.Treeview(right, columns=cols2, show="headings", height=15)
+        self.tree_tipos = ttk.Treeview(right, columns=cols2, show="headings", height=15, style="Treeview")
         self.tree_tipos.heading("id", text="ID")
         self.tree_tipos.heading("nombre", text="Nombre")
         self.tree_tipos.heading("descripcion", text="Descripción")
         self.tree_tipos.heading("activo", text="Activo")
-        self.tree_tipos.column("id", width=140, anchor="w")
-        self.tree_tipos.column("nombre", width=160, anchor="w")
-        self.tree_tipos.column("descripcion", width=220, anchor="w")
+        self.tree_tipos.column("id", width=100, anchor="w")
+        self.tree_tipos.column("nombre", width=180, anchor="w")
+        self.tree_tipos.column("descripcion", width=250, anchor="w")
         self.tree_tipos.column("activo", width=60, anchor="center")
         self.tree_tipos.pack(fill="both", expand=True)
         self.tree_tipos.bind("<<TreeviewSelect>>", lambda e: None)
 
-        tbtnf = tk.Frame(right)
+        tbtnf = tk.Frame(right, bg=COLOR_FONDO)
         tbtnf.pack(pady=6, anchor="e")
-        tk.Button(tbtnf, text="Agregar Tipo", width=12, command=self.agregar_tipo).grid(row=0, column=0, padx=4)
-        tk.Button(tbtnf, text="Editar Tipo", width=12, command=self.editar_tipo).grid(row=0, column=1, padx=4)
-        tk.Button(tbtnf, text="Eliminar Tipo", width=12, command=self.eliminar_tipo).grid(row=0, column=2, padx=4)
+        tk.Button(tbtnf, text="Agregar Tipo", width=12, command=self.agregar_tipo, bg=COLOR_BTN, fg=COLOR_TEXTO_BTN, font=FUENTE_BTN, relief="flat", bd=0).grid(row=0, column=0, padx=4)
+        tk.Button(tbtnf, text="Editar Tipo", width=12, command=self.editar_tipo, bg=COLOR_BTN, fg=COLOR_TEXTO_BTN, font=FUENTE_BTN, relief="flat", bd=0).grid(row=0, column=1, padx=4)
+        tk.Button(tbtnf, text="Eliminar Tipo", width=12, command=self.eliminar_tipo, bg=COLOR_BTN, fg=COLOR_TEXTO_BTN, font=FUENTE_BTN, relief="flat", bd=0).grid(row=0, column=2, padx=4)
 
         # Cargar inicialmente
         self.cargar_categorias()
@@ -238,21 +268,22 @@ class CategoriaDialog:
         self.top.geometry("420x160")
         self.top.transient(parent)
         self.top.grab_set()
+        self.top.configure(bg=COLOR_FONDO)
 
-        tk.Label(self.top, text="Nombre visible (descripción):").pack(anchor="w", padx=10, pady=(10,0))
-        self.entry_desc = tk.Entry(self.top, width=60)
+        tk.Label(self.top, text="Nombre visible (descripción):", bg=COLOR_FONDO, fg="black", font=FUENTE_NORMAL).pack(anchor="w", padx=10, pady=(10,0))
+        self.entry_desc = tk.Entry(self.top, width=60, font=FUENTE_NORMAL, relief="flat", bd=1)
         self.entry_desc.pack(padx=10, pady=3)
         self.entry_desc.insert(0, descripcion_init)
 
-        tk.Label(self.top, text="Slug (opcional, p. ej. 'contratos'):").pack(anchor="w", padx=10, pady=(6,0))
-        self.entry_slug = tk.Entry(self.top, width=60)
+        tk.Label(self.top, text="Slug (opcional, p. ej. 'contratos'):", bg=COLOR_FONDO, fg="black", font=FUENTE_NORMAL).pack(anchor="w", padx=10, pady=(6,0))
+        self.entry_slug = tk.Entry(self.top, width=60, font=FUENTE_NORMAL, relief="flat", bd=1)
         self.entry_slug.pack(padx=10, pady=3)
         self.entry_slug.insert(0, slug_init)
 
-        btnf = tk.Frame(self.top)
+        btnf = tk.Frame(self.top, bg=COLOR_FONDO)
         btnf.pack(pady=10)
-        tk.Button(btnf, text="Cancelar", command=self._cancel).grid(row=0, column=0, padx=6)
-        tk.Button(btnf, text="Guardar", command=self._ok).grid(row=0, column=1, padx=6)
+        tk.Button(btnf, text="Cancelar", command=self._cancel, bg="gray", fg="white", font=FUENTE_BTN, relief="flat", bd=0).grid(row=0, column=0, padx=6)
+        tk.Button(btnf, text="Guardar", command=self._ok, bg=COLOR_BTN, fg=COLOR_TEXTO_BTN, font=FUENTE_BTN, relief="flat", bd=0).grid(row=0, column=1, padx=6)
 
         self.result = None
 
@@ -277,21 +308,22 @@ class TipoDialog:
         self.top.geometry("480x200")
         self.top.transient(parent)
         self.top.grab_set()
+        self.top.configure(bg=COLOR_FONDO)
 
-        tk.Label(self.top, text="Nombre del tipo:").pack(anchor="w", padx=10, pady=(10,0))
-        self.entry_nombre = tk.Entry(self.top, width=70)
+        tk.Label(self.top, text="Nombre del tipo:", bg=COLOR_FONDO, fg="black", font=FUENTE_NORMAL).pack(anchor="w", padx=10, pady=(10,0))
+        self.entry_nombre = tk.Entry(self.top, width=70, font=FUENTE_NORMAL, relief="flat", bd=1)
         self.entry_nombre.pack(padx=10, pady=3)
         self.entry_nombre.insert(0, nombre_init)
 
-        tk.Label(self.top, text="Descripción (opcional):").pack(anchor="w", padx=10, pady=(6,0))
-        self.entry_desc = tk.Entry(self.top, width=70)
+        tk.Label(self.top, text="Descripción (opcional):", bg=COLOR_FONDO, fg="black", font=FUENTE_NORMAL).pack(anchor="w", padx=10, pady=(6,0))
+        self.entry_desc = tk.Entry(self.top, width=70, font=FUENTE_NORMAL, relief="flat", bd=1)
         self.entry_desc.pack(padx=10, pady=3)
         self.entry_desc.insert(0, descripcion_init)
 
-        btnf = tk.Frame(self.top)
+        btnf = tk.Frame(self.top, bg=COLOR_FONDO)
         btnf.pack(pady=10)
-        tk.Button(btnf, text="Cancelar", command=self._cancel).grid(row=0, column=0, padx=6)
-        tk.Button(btnf, text="Guardar", command=self._ok).grid(row=0, column=1, padx=6)
+        tk.Button(btnf, text="Cancelar", command=self._cancel, bg="gray", fg="white", font=FUENTE_BTN, relief="flat", bd=0).grid(row=0, column=0, padx=6)
+        tk.Button(btnf, text="Guardar", command=self._ok, bg=COLOR_BTN, fg=COLOR_TEXTO_BTN, font=FUENTE_BTN, relief="flat", bd=0).grid(row=0, column=1, padx=6)
 
         self.result = None
 
