@@ -23,8 +23,8 @@ class VentanaAuditoria(tk.Toplevel):
 
     - Se abre en pantalla completa (maximizada).
     - Oculta la ventana anterior (menú) mientras está abierta.
-    - Tiene un botón para regresar al menú principal que
-      cierra esta ventana y vuelve a mostrar la anterior.
+    - Botón "Regresar al menú principal" que cierra esta ventana
+      y vuelve a mostrar el menú.
     """
 
     def __init__(self, master=None, auditoria_service=None):
@@ -110,8 +110,10 @@ class VentanaAuditoria(tk.Toplevel):
             font=FUENTE_NORMAL,
         ).grid(row=0, column=2, sticky="w")
 
+        # Lista de acciones disponibles en la auditoría
         acciones = [
             "",
+            "SUBIR_DOCUMENTO",      # 👈 quién subió el documento
             "VER_DOCUMENTO",
             "DESCARGAR_DOCUMENTO",
             "CREAR_CATEGORIA",
@@ -162,7 +164,7 @@ class VentanaAuditoria(tk.Toplevel):
         self.tree.column("fecha", width=160, anchor="w")
         self.tree.column("usuario", width=120, anchor="w")
         self.tree.column("rol", width=120, anchor="w")
-        self.tree.column("accion", width=160, anchor="w")
+        self.tree.column("accion", width=180, anchor="w")
         self.tree.column("documento", width=320, anchor="w")
 
         vsb = ttk.Scrollbar(tabla_frame, orient="vertical", command=self.tree.yview)
