@@ -27,13 +27,23 @@ class MainApp:
         self.root.title("Sistema de Gestión Legal")
         self.root.configure(bg=COLOR_FONDO) # Color de fondo inicial
         self.usuario_actual = None  # Al principio no hay nadie logueado
+
+        # 🚀 PONER SIEMPRE LA VENTANA PRINCIPAL EN PANTALLA MÁXIMA
+        try:
+            self.root.state("zoomed")
+        except tk.TclError:
+            try:
+                self.root.attributes("-zoomed", True)
+            except tk.TclError:
+                pass
         
         # Al iniciar la app, mostramos la pantalla de Login inmediatamente
         self.mostrar_login()
 
     def mostrar_login(self):
         # LIMPIEZA: Eliminamos cualquier botón o texto que haya en pantalla
-        for widget in self.root.winfo_children(): widget.destroy()
+        for widget in self.root.winfo_children():
+            widget.destroy()
         
         # Llamamos a la clase LoginView (que está en modules/login.py)
         # Le pasamos 'self.login_exitoso' como callback (qué hacer cuando el login sea correcto)
@@ -46,10 +56,20 @@ class MainApp:
 
     def mostrar_menu_principal(self):
         # LIMPIEZA: Borramos la pantalla de login para dejar el lienzo blanco
-        for widget in self.root.winfo_children(): widget.destroy()
+        for widget in self.root.winfo_children():
+            widget.destroy()
         
         self.root.geometry("600x700") # Hacemos la ventana más grande para el menú
         self.root.configure(bg=COLOR_FONDO) # Aseguramos el color de fondo
+
+        # 🔁 APLICAMOS OTRA VEZ PANTALLA MÁXIMA (por si geometry la “des-maximiza”)
+        try:
+            self.root.state("zoomed")
+        except tk.TclError:
+            try:
+                self.root.attributes("-zoomed", True)
+            except tk.TclError:
+                pass
         
         # Extraemos datos del usuario para mostrar bienvenida
         nombre = self.usuario_actual['nombre']
@@ -129,7 +149,7 @@ class MainApp:
                 body_frame,
                 text="5. Auditoría de Accesos",
                 command=lambda: VentanaAuditoria(self.root),
-                font=FUENTE_BTN, bg=COLOR_BTN, fg="white", # Un color naranja para diferenciar admin
+                font=FUENTE_BTN, bg=COLOR_BTN, fg="white",  # respeta tu estilo original
                 relief="flat", cursor="hand2", pady=10, bd=0
             )
             btn.pack(fill="x", padx=80, pady=6)
@@ -144,6 +164,6 @@ class MainApp:
 
 # --- PUNTO DE ENTRADA DEL PROGRAMA ---
 if __name__ == "__main__":
-    root = tk.Tk()       # Creamos la ventana base invisible
+    root = tk.Tk()       # Creamos la ventana base
     app = MainApp(root)  # Iniciamos nuestra aplicación
     root.mainloop()      # Mantiene la ventana abierta hasta que la cerremos
