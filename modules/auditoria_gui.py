@@ -113,7 +113,7 @@ class VentanaAuditoria(tk.Toplevel):
         # Lista de acciones disponibles en la auditoría
         acciones = [
             "",
-            "SUBIR_DOCUMENTO",      # 👈 quién subió el documento
+            "SUBIR_DOCUMENTO",     
             "VER_DOCUMENTO",
             "DESCARGAR_DOCUMENTO",
             "CREAR_CATEGORIA",
@@ -219,7 +219,17 @@ class VentanaAuditoria(tk.Toplevel):
         """Cerrar esta ventana y volver a mostrar la ventana principal (menú)."""
         if self.master is not None:
             try:
+                # Volver a mostrar la ventana principal
                 self.master.deiconify()
+
+                # 👇 Y asegurarnos de que se vea en pantalla completa
+                try:
+                    self.master.state("zoomed")
+                except tk.TclError:
+                    try:
+                        self.master.attributes("-zoomed", True)
+                    except tk.TclError:
+                        pass
             except Exception:
                 pass
         self.destroy()
