@@ -4,13 +4,13 @@ import tkinter as tk
 from tkinter import ttk
 from models.auditoria_service import AuditoriaService
 
-# --------- ESTILOS ----------
+# -------- ESTILOS COMPARTIDOS --------
 COLOR_FONDO = "#F4F6F7"       # Gris muy claro (casi blanco)
 COLOR_HEADER = "#2C3E50"      # Azul marino oscuro (profesional)
 COLOR_TEXTO_HEADER = "white"
 COLOR_BTN = "#3498DB"         # Azul brillante para botones
 COLOR_TEXTO_BTN = "white"
-COLOR_LOGOUT = "#E74C3C"      # (Por si luego agregas botón de cerrar)
+COLOR_LOGOUT = "#E74C3C"      # Rojo suave para 'regresar / salir'
 FUENTE_TITULO = ("Segoe UI", 16, "bold")
 FUENTE_NORMAL = ("Segoe UI", 11)
 FUENTE_BTN = ("Segoe UI", 10, "bold")
@@ -20,28 +20,52 @@ class VentanaAuditoria(tk.Toplevel):
     """
     Ventana de Tkinter para consultar la auditoría de accesos.
     Solo la debería abrir el Administrador.
+
+    - Se abre en pantalla completa (maximizada).
+    - Oculta la ventana anterior (menú) mientras está abierta.
+    - Tiene un botón para regresar al menú principal que
+      cierra esta ventana y vuelve a mostrar la anterior.
     """
 
     def __init__(self, master=None, auditoria_service=None):
         super().__init__(master)
+        self.master = master
+
+        # Ocultar la ventana anterior (menú) mientras está abierta la auditoría
+        if self.master is not None:
+            try:
+                self.master.withdraw()
+            except Exception:
+                pass
+
         self.title("Auditoría de accesos")
-        self.geometry("900x450")
         self.configure(bg=COLOR_FONDO)
 
-        # Servicio de auditoría (si no te pasan uno, crea uno nuevo)
+        # Pantalla completa / maximizada (Windows)
+        try:
+            self.state("zoomed")
+        except tk.TclError:
+            # Fallback por si en algún sistema no existe 'zoomed'
+            try:
+                self.attributes("-zoomed", True)
+            except tk.TclError:
+                pass
+
+        # Servicio de auditoría
         self.auditoria_service = auditoria_service or AuditoriaService()
 
-        # Estilo para la tabla
-        style = ttk.Style(self)
-        style.configure("Audit.Treeview", font=FUENTE_NORMAL)
-        style.configure("Audit.Treeview.Heading", font=("Segoe UI", 10, "bold"))
-
         self._crear_widgets()
-        self.cargar_eventos()  # cargar datos al inicio
+        self.cargar_eventos()
 
+        # Si cierran con la X de la ventana, que haga lo mismo que el botón "Regresar"
+        self.protocol("WM_DELETE_WINDOW", self.regresar_menu)
+
+    # -------------------------------------------------
+    # GUI
+    # -------------------------------------------------
     def _crear_widgets(self):
         # ----- HEADER -----
-        header = tk.Frame(self, bg=COLOR_HEADER)
+        header = tk.Frame(self, bg=COLOR_HEADER, pady=10)
         header.pack(fill="x")
 
         lbl_titulo = tk.Label(
@@ -49,38 +73,44 @@ class VentanaAuditoria(tk.Toplevel):
             text="Auditoría de accesos",
             bg=COLOR_HEADER,
             fg=COLOR_TEXTO_HEADER,
-            font=FUENTE_TITULO,
-            pady=10
+            font=FUENTE_TITULO
         )
-        lbl_titulo.pack(fill="x")
+        lbl_titulo.pack(side="left", padx=20)
 
-        # ----- CONTENEDOR PRINCIPAL -----
-        contenedor = tk.Frame(self, bg=COLOR_FONDO)
-        contenedor.pack(fill="both", expand=True, padx=10, pady=(5, 10))
+        btn_volver = tk.Button(
+            header,
+            text="← Regresar al menú principal",
+            bg=COLOR_LOGOUT,
+            fg=COLOR_TEXTO_BTN,
+            font=FUENTE_BTN,
+            relief="flat",
+            cursor="hand2",
+            command=self.regresar_menu,
+        )
+        btn_volver.pack(side="right", padx=20)
 
-        # ----- Frame de filtros -----
-        filtro_frame = tk.Frame(contenedor, bg=COLOR_FONDO)
-        filtro_frame.pack(fill="x", pady=5)
+        # ----- FILTROS -----
+        filtro_frame = tk.Frame(self, bg=COLOR_FONDO, pady=10)
+        filtro_frame.pack(fill="x", padx=20)
 
         tk.Label(
             filtro_frame,
             text="Usuario:",
             bg=COLOR_FONDO,
-            font=FUENTE_NORMAL
+            font=FUENTE_NORMAL,
         ).grid(row=0, column=0, sticky="w")
 
-        self.entry_usuario = tk.Entry(filtro_frame, width=20)
-        self.entry_usuario.grid(row=0, column=1, padx=5, pady=2)
+        self.entry_usuario = tk.Entry(filtro_frame, width=25, font=FUENTE_NORMAL)
+        self.entry_usuario.grid(row=0, column=1, padx=(5, 15))
 
         tk.Label(
             filtro_frame,
             text="Acción:",
             bg=COLOR_FONDO,
-            font=FUENTE_NORMAL
+            font=FUENTE_NORMAL,
         ).grid(row=0, column=2, sticky="w")
 
-        # 👇 Aquí agregamos TODAS las acciones que ya aparecen en tus logs
-        acciones_posibles = [
+        acciones = [
             "",
             "VER_DOCUMENTO",
             "DESCARGAR_DOCUMENTO",
@@ -91,43 +121,37 @@ class VentanaAuditoria(tk.Toplevel):
             "EDITAR_TIPO",
             "ELIMINAR_TIPO",
             "AGREGAR_VERSION",
+            "LOGIN",
+            "LOGOUT",
         ]
 
         self.combo_accion = ttk.Combobox(
             filtro_frame,
-            values=acciones_posibles,
-            width=25,
-            state="readonly"
+            values=acciones,
+            state="readonly",
+            width=28,
         )
-        self.combo_accion.grid(row=0, column=3, padx=5, pady=2)
-        self.combo_accion.set("")  # valor vacío por defecto
+        self.combo_accion.grid(row=0, column=3, padx=(5, 15))
+        self.combo_accion.set("")
 
         btn_filtrar = tk.Button(
             filtro_frame,
             text="Aplicar filtros",
-            command=self.cargar_eventos,
             bg=COLOR_BTN,
             fg=COLOR_TEXTO_BTN,
             font=FUENTE_BTN,
             relief="flat",
-            activebackground=COLOR_HEADER,
-            activeforeground=COLOR_TEXTO_BTN,
-            padx=10,
-            pady=3
+            cursor="hand2",
+            command=self.cargar_eventos,
         )
-        btn_filtrar.grid(row=0, column=4, padx=5, pady=2)
+        btn_filtrar.grid(row=0, column=4, padx=5)
 
-        # ----- Tabla (Treeview) -----
-        tabla_frame = tk.Frame(contenedor, bg=COLOR_FONDO)
-        tabla_frame.pack(fill="both", expand=True, pady=(5, 0))
+        # ----- TABLA -----
+        tabla_frame = tk.Frame(self, bg=COLOR_FONDO)
+        tabla_frame.pack(fill="both", expand=True, padx=20, pady=(0, 20))
 
         columnas = ("fecha", "usuario", "rol", "accion", "documento")
-        self.tree = ttk.Treeview(
-            tabla_frame,
-            columns=columnas,
-            show="headings",
-            style="Audit.Treeview"
-        )
+        self.tree = ttk.Treeview(tabla_frame, columns=columnas, show="headings")
 
         self.tree.heading("fecha", text="Fecha / Hora")
         self.tree.heading("usuario", text="Usuario")
@@ -135,32 +159,27 @@ class VentanaAuditoria(tk.Toplevel):
         self.tree.heading("accion", text="Acción")
         self.tree.heading("documento", text="Documento")
 
-        self.tree.column("fecha", width=160)
-        self.tree.column("usuario", width=120)
-        self.tree.column("rol", width=120)
-        self.tree.column("accion", width=180)
-        self.tree.column("documento", width=260)
+        self.tree.column("fecha", width=160, anchor="w")
+        self.tree.column("usuario", width=120, anchor="w")
+        self.tree.column("rol", width=120, anchor="w")
+        self.tree.column("accion", width=160, anchor="w")
+        self.tree.column("documento", width=320, anchor="w")
 
-        scrollbar = ttk.Scrollbar(
-            tabla_frame,
-            orient="vertical",
-            command=self.tree.yview
-        )
-        self.tree.configure(yscrollcommand=scrollbar.set)
+        vsb = ttk.Scrollbar(tabla_frame, orient="vertical", command=self.tree.yview)
+        self.tree.configure(yscrollcommand=vsb.set)
 
-        self.tree.pack(side="left", fill="both", expand=True, padx=(0, 0), pady=5)
-        scrollbar.pack(side="right", fill="y", padx=(5, 0), pady=5)
+        self.tree.pack(side="left", fill="both", expand=True)
+        vsb.pack(side="right", fill="y")
 
+    # -------------------------------------------------
+    # LÓGICA
+    # -------------------------------------------------
     def cargar_eventos(self):
-        """
-        Carga los eventos desde MongoDB y los muestra en la tabla,
-        aplicando los filtros de usuario y acción.
-        """
+        """Carga los eventos desde MongoDB y los muestra en la tabla usando los filtros."""
         # Limpiar tabla
         for row in self.tree.get_children():
             self.tree.delete(row)
 
-        # Construir filtro
         filtro = {}
         usuario = self.entry_usuario.get().strip()
         accion = self.combo_accion.get().strip()
@@ -170,14 +189,15 @@ class VentanaAuditoria(tk.Toplevel):
         if accion:
             filtro["accion"] = accion
 
-        # Obtener eventos desde el servicio
         eventos = self.auditoria_service.obtener_eventos(filtro)
 
-        # Insertar filas
         for ev in eventos:
             fecha_dt = ev.get("fecha_hora")
             if fecha_dt:
-                fecha_str = fecha_dt.strftime("%Y-%m-%d %H:%M:%S")
+                try:
+                    fecha_str = fecha_dt.strftime("%Y-%m-%d %H:%M:%S")
+                except Exception:
+                    fecha_str = str(fecha_dt)
             else:
                 fecha_str = "-"
 
@@ -189,14 +209,23 @@ class VentanaAuditoria(tk.Toplevel):
                     ev.get("usuario", "-"),
                     ev.get("rol", "-"),
                     ev.get("accion", "-"),
-                    ev.get("documento_nombre", "-")
-                )
+                    ev.get("documento_nombre", "-"),
+                ),
             )
 
+    def regresar_menu(self):
+        """Cerrar esta ventana y volver a mostrar la ventana principal (menú)."""
+        if self.master is not None:
+            try:
+                self.master.deiconify()
+            except Exception:
+                pass
+        self.destroy()
 
-# Permite probar esta ventana ejecutando SOLO este archivo:
+
+# Para probar esta ventana de manera aislada:
 if __name__ == "__main__":
     root = tk.Tk()
-    root.withdraw()  # ocultar la ventana raíz
-    VentanaAuditoria(root)
+    root.title("Prueba Auditoría")
+    app = VentanaAuditoria(root)
     root.mainloop()
