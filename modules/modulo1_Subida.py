@@ -266,6 +266,14 @@ class Subida_modulo1(tk.Toplevel):
         if self.master is not None:
             try:
                 self.master.deiconify()
+                # 👇 Maximizar también el menú principal
+                try:
+                    self.master.state("zoomed")
+                except tk.TclError:
+                    try:
+                        self.master.attributes("-zoomed", True)
+                    except tk.TclError:
+                        pass
             except Exception:
                 pass
         self.destroy()
