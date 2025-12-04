@@ -207,9 +207,10 @@ class Subida_modulo1(tk.Toplevel):
         # ---------------------------------------------------------
         # 2. SECCIÓN DE TABLA (VISOR)
         # ---------------------------------------------------------
+        # (CORREGIDO: Texto limpio)
         lbl_tabla = tk.Label(
             self,
-            text="DOCUMENTOS REGISTRADOS (DOBLE CLIC PARA ABRIR)", 
+            text="DOCUMENTOS REGISTRADOS", 
             bg=COLOR_HEADER,
             fg=COLOR_TEXTO_HEADER,
             font=("Segoe UI", 10, "bold"),
@@ -235,7 +236,8 @@ class Subida_modulo1(tk.Toplevel):
         self.tree.column("ID", width=0, stretch=tk.NO) 
         self.tree.column("Titulo", width=300)
         self.tree.column("Tipo", width=200)
-        self.tree.column("Fecha", width=100)
+        # (CORREGIDO: Centrar fecha)
+        self.tree.column("Fecha", width=100, anchor="center")
 
         scrollbar = ttk.Scrollbar(frame_tabla, orient="vertical", command=self.tree.yview)
         self.tree.configure(yscrollcommand=scrollbar.set)
@@ -291,6 +293,14 @@ class Subida_modulo1(tk.Toplevel):
 
         for doc in cursor:
             tipo_mostrar = str(doc.get("tipo", "N/A"))
+            
+            # (CORREGIDO: Lógica para mostrar fecha_vencimiento, fecha_evento o '---')
+            fecha_mostrar = doc.get("fecha_vencimiento")
+            if not fecha_mostrar:
+                fecha_mostrar = doc.get("fecha_evento")
+            if not fecha_mostrar:
+                fecha_mostrar = "---"
+
             self.tree.insert(
                 "",
                 "end",
@@ -298,7 +308,7 @@ class Subida_modulo1(tk.Toplevel):
                     str(doc["_id"]), 
                     doc.get("titulo", "Sin Título"),
                     tipo_mostrar,
-                    doc.get("fecha_evento", "")
+                    fecha_mostrar
                 )
             )
 
@@ -460,7 +470,7 @@ class Subida_modulo1(tk.Toplevel):
                 "categoria": cat_slug,
                 "tipo": tipo_slug,
                 "actores_involucrados": actores,
-                "fecha_evento": fecha_str,
+                "fecha_vencimiento": fecha_str,  # (CORREGIDO: nombre del campo)
                 "subido_por": self.usuario["username"],
                 "fecha_subida": datetime.utcnow(),
                 "archivo_pdf": binary_data
