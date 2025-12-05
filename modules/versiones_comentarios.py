@@ -32,23 +32,33 @@ class VersionesComentariosGUI(tk.Frame):
         self.comentario = tk.StringVar()
         self.version_sel = None
 
+        # Referencia al menú principal (root) para poder regresarlo
+        # master es el Toplevel; su .master es la ventana principal.
+        self.menu_root = master.master if isinstance(master, tk.Toplevel) else master
+
         self._build()
 
     def _build(self):
         self.columnconfigure(1, weight=1)
 
-        
-        tk.Label(self, text="Documento ID", font=FUENTE_NORMAL, bg=COLOR_FONDO).grid(row=0, column=0, sticky="w")
-        tk.Entry(self, textvariable=self.documento_id, font=FUENTE_NORMAL, bg="white").grid(row=0, column=1, sticky="ew")
+        # Fila 0: ID y botón cargar
+        tk.Label(self, text="Documento ID", font=FUENTE_NORMAL, bg=COLOR_FONDO)\
+            .grid(row=0, column=0, sticky="w")
+        tk.Entry(self, textvariable=self.documento_id, font=FUENTE_NORMAL, bg="white")\
+            .grid(row=0, column=1, sticky="ew")
 
-        tk.Button(self, text="Cargar versiones", font=FUENTE_BTN,
-                  bg=COLOR_BTN, fg=COLOR_TEXTO_BTN, command=self.refrescar).grid(row=0, column=2)
+        tk.Button(
+            self, text="Cargar versiones", font=FUENTE_BTN,
+            bg=COLOR_BTN, fg=COLOR_TEXTO_BTN, command=self.refrescar
+        ).grid(row=0, column=2, padx=5)
 
-     
+        # Estilos Treeview
         style = ttk.Style()
         style.configure("Treeview", font=FUENTE_NORMAL, background="white", fieldbackground="white")
-        style.configure("Treeview.Heading", font=FUENTE_BTN, background=COLOR_HEADER, foreground=COLOR_TEXTO_HEADER)
+        style.configure("Treeview.Heading", font=FUENTE_BTN,
+                        background=COLOR_HEADER, foreground=COLOR_TEXTO_HEADER)
 
+        # Tabla de versiones
         self.tree = ttk.Treeview(self, columns=("numero", "ruta", "fecha"), show="headings")
         self.tree.heading("numero", text="Versión")
         self.tree.heading("ruta", text="Ruta")
@@ -57,21 +67,38 @@ class VersionesComentariosGUI(tk.Frame):
         self.tree.grid(row=1, column=0, columnspan=3, sticky="nsew")
         self.rowconfigure(1, weight=1)
 
-        
-        tk.Button(self, text="Agregar versión", font=FUENTE_BTN,
-                  bg=COLOR_BTN, fg=COLOR_TEXTO_BTN, command=self.agregar_version).grid(row=2, column=0, pady=6)
+        # Botón agregar versión
+        tk.Button(
+            self, text="Agregar versión", font=FUENTE_BTN,
+            bg=COLOR_BTN, fg=COLOR_TEXTO_BTN, command=self.agregar_version
+        ).grid(row=2, column=0, pady=6, sticky="w")
 
-       
-        tk.Label(self, text="Comentario", font=FUENTE_NORMAL, bg=COLOR_FONDO).grid(row=3, column=0, sticky="w")
-        tk.Entry(self, textvariable=self.comentario, width=40, font=FUENTE_NORMAL, bg="white").grid(row=3, column=1, sticky="ew")
-        tk.Button(self, text="Agregar comentario", font=FUENTE_BTN,
-                  bg=COLOR_BTN, fg=COLOR_TEXTO_BTN, command=self.agregar_comentario).grid(row=3, column=2)
+        # Comentarios
+        tk.Label(self, text="Comentario", font=FUENTE_NORMAL, bg=COLOR_FONDO)\
+            .grid(row=3, column=0, sticky="w")
+        tk.Entry(self, textvariable=self.comentario, width=40,
+                 font=FUENTE_NORMAL, bg="white")\
+            .grid(row=3, column=1, sticky="ew")
+        tk.Button(
+            self, text="Agregar comentario", font=FUENTE_BTN,
+            bg=COLOR_BTN, fg=COLOR_TEXTO_BTN, command=self.agregar_comentario
+        ).grid(row=3, column=2, padx=5)
 
+        # Lista comentarios
         self.list_comm = tk.Listbox(self, width=60, font=FUENTE_NORMAL, bg="white")
         self.list_comm.grid(row=4, column=0, columnspan=3, sticky="nsew")
 
-        tk.Button(self, text="Regresar al menú principal", font=FUENTE_BTN,
-                  bg=COLOR_LOGOUT, fg=COLOR_TEXTO_BTN, command=self.volver_menu).grid(row=5, column=0, columnspan=3, pady=10)
+        # Botón regresar
+        tk.Button(
+            self,
+            text="← Regresar al menú principal",
+            font=FUENTE_BTN,
+            bg=COLOR_LOGOUT,
+            fg=COLOR_TEXTO_BTN,
+            command=self.volver_menu
+        ).grid(row=5, column=0, columnspan=3, pady=10)
+
+    # ---------------- LÓGICA ----------------
 
     def refrescar(self):
         for i in self.tree.get_children():
@@ -85,13 +112,20 @@ class VersionesComentariosGUI(tk.Frame):
         try:
             doc_oid = ObjectId(doc_id)
         except InvalidId:
-            messagebox.showerror("Error", "El Documento ID no es válido. Debe ser un ObjectId de 24 caracteres hexadecimales.")
+            messagebox.showerror(
+                "Error",
+                "El Documento ID no es válido. Debe ser un ObjectId de 24 caracteres hexadecimales."
+            )
             return
 
         versiones = self.vers_repo.listar_por_documento(doc_oid)
         for v in versiones:
-            self.tree.insert("", tk.END, iid=str(v["_id"]),
-                             values=(v["numero"], v["ruta"], v.get("createdAt", "")))
+            self.tree.insert(
+                "",
+                tk.END,
+                iid=str(v["_id"]),
+                values=(v["numero"], v["ruta"], v.get("createdAt", ""))
+            )
 
         self.list_comm.delete(0, tk.END)
 
@@ -112,15 +146,24 @@ class VersionesComentariosGUI(tk.Frame):
         if not doc_id:
             messagebox.showerror("Error", "Ingresa Documento ID")
             return
+
         ruta = filedialog.askopenfilename()
         if not ruta:
             return
+
         try:
             with open(ruta, "rb") as f:
                 digest = hashlib.sha256(f.read()).hexdigest()
+
             numero = len(self.vers_repo.listar_por_documento(ObjectId(doc_id))) + 1
             vid = self.vers_repo.crear(doc_id, numero, ruta, digest, self.usuario["nombre"])
-            self.audit.registrar(self.usuario["rol"], doc_id, "AGREGAR_VERSION", {"versionId": str(vid)})
+
+            self.audit.registrar(
+                self.usuario["rol"],
+                doc_id,
+                "AGREGAR_VERSION",
+                {"versionId": str(vid)}
+            )
             self.refrescar()
         except Exception as e:
             messagebox.showerror("Error", str(e))
@@ -133,26 +176,72 @@ class VersionesComentariosGUI(tk.Frame):
             messagebox.showerror("Error", "El comentario no puede estar vacío")
             return
         try:
-            cid = self.comm_repo.crear(self.version_sel, self.comentario.get(), self.usuario["nombre"])
-            self.audit.registrar(self.usuario["rol"], self.documento_id.get().strip(),
-                                 "AGREGAR_COMENTARIO", {"comentarioId": str(cid)})
+            cid = self.comm_repo.crear(
+                self.version_sel,
+                self.comentario.get(),
+                self.usuario["nombre"]
+            )
+            self.audit.registrar(
+                self.usuario["rol"],
+                self.documento_id.get().strip(),
+                "AGREGAR_COMENTARIO",
+                {"comentarioId": str(cid)}
+            )
             self.refrescar_comentarios()
             self.comentario.set("")
         except Exception as e:
             messagebox.showerror("Error", str(e))
 
     def volver_menu(self):
+        """Cerrar esta ventana y volver a mostrar el menú principal."""
+        # self.master es el Toplevel; self.menu_root es la ventana principal
+        if self.menu_root is not None:
+            try:
+                self.menu_root.deiconify()
+                # aseguramos que el menú también quede maximizado
+                try:
+                    self.menu_root.state("zoomed")
+                except tk.TclError:
+                    try:
+                        self.menu_root.attributes("-zoomed", True)
+                    except tk.TclError:
+                        pass
+            except Exception:
+                pass
+
+        # Cerramos la ventana de versiones (Toplevel)
         self.master.destroy()
 
 
 def abrir_modulo(master, db, usuario):
-    """Crea una ventana Toplevel con la GUI de Versiones y Comentarios."""
+    """
+    Crea una ventana Toplevel con la GUI de Versiones y Comentarios.
+    - Oculta el menú principal mientras está abierta.
+    - Abre esta ventana en pantalla completa.
+    """
+    # Ocultamos el menú principal
+    try:
+        master.withdraw()
+    except Exception:
+        pass
+
     ventana = tk.Toplevel(master)
     ventana.title("Versiones y Comentarios")
-    ventana.geometry("700x500")
     ventana.configure(bg=COLOR_FONDO)
+
+    # Pantalla completa / maximizada
+    try:
+        ventana.state("zoomed")
+    except tk.TclError:
+        try:
+            ventana.attributes("-zoomed", True)
+        except tk.TclError:
+            pass
 
     gui = VersionesComentariosGUI(ventana, db, usuario)
     gui.pack(fill="both", expand=True)
+
+    # Si cierran con la X, que haga lo mismo que el botón regresar
+    ventana.protocol("WM_DELETE_WINDOW", gui.volver_menu)
 
     return ventana
