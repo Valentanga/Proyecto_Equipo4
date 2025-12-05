@@ -1,7 +1,7 @@
 # models/auditoria_service.py
 
 from datetime import datetime
-from db.connection import get_db   # 👈 usamos la función que ya existe
+from db.connection import get_db   
 
 
 class AuditoriaService:
@@ -39,7 +39,8 @@ class AuditoriaService:
             "accion": accion,
             "documento_id": documento_id,
             "documento_nombre": documento_nombre,
-            "fecha_hora": datetime.utcnow()
+            # ✅ HORA LOCAL DEL SISTEMA
+            "fecha_hora": datetime.now()
         }
 
         if isinstance(extra, dict):
