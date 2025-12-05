@@ -7,6 +7,7 @@ from modules.modulo1_Subida import Subida_modulo1
 from modules.auditoria_gui import VentanaAuditoria
 from modules.gestion_categorias import GestionCategorias
 from modules.busqueda_avanzada import BusquedaAvanzada
+from modules.versiones_comentarios import abrir_modulo
 
 # --- CONFIGURACIÓN DE DISEÑO (Igual al Módulo de Subida) ---
 COLOR_FONDO = "#F4F6F7"       # Gris muy claro (Casi blanco)
@@ -138,7 +139,7 @@ class MainApp:
        # 4. BOTÓN DE MODULO 4 VERSIONES
         if "versiones_comentarios" in permisos:
             btn = tk.Button(self.root, text="4. Versiones y Comentarios", bg="#FFF3E0", height=2,
-                            command=lambda: abrir_modulo(self.root, db, self.usuario_actual))
+                            command=lambda: abrir_modulo(self.root,  self.usuario_actual))
 
             btn.pack(fill="x", padx=50, pady=5)
 
