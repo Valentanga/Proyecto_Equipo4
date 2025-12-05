@@ -136,12 +136,11 @@ class MainApp:
             btn.pack(fill="x", padx=80, pady=6)
 
         # 4. BOTÓN DE MÓDULO 4 VERSIONES
-        if "versiones_comentarios" in permisos:
-            btn = tk.Button(body_frame, text="4. Versiones y Comentarios", 
-                            # command=lambda: abrir_modulo(self.root, db, self.usuario_actual) # Descomentar cuando esté listo
-                            command=lambda: print(">> Módulo Versiones: Pendiente"), 
-                            **btn_style)
-            btn.pack(fill="x", padx=80, pady=6)
+               if "versiones_comentarios" in permisos:
+            btn = tk.Button(self.root, text="4. Versiones y Comentarios", bg="#FFF3E0", height=2,
+                            command=lambda: abrir_modulo(self.root, db, self.usuario_actual))
+
+            btn.pack(fill="x", padx=50, pady=5)
 
         # 5. BOTÓN DE MÓDULO 5 AUDITORÍA
         if "auditoria_accesos" in permisos:
