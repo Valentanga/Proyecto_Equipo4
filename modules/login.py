@@ -22,6 +22,16 @@ class LoginView(tk.Frame):
         super().__init__(master)
         self.master = master
         
+        # 🔹 PONER VENTANA EN PANTALLA COMPLETA DESDE AQUÍ 🔹
+        try:
+            self.master.state("zoomed")
+        except tk.TclError:
+            try:
+                self.master.attributes("-zoomed", True)
+            except tk.TclError:
+                pass
+        # 🔹 FIN DEL CAMBIO 🔹
+        
         # Guardamos la función que nos pasó el MainApp.
         self.on_success = on_success_callback
         

@@ -21,7 +21,7 @@ class GestionCategorias:
         self.parent = parent
         self.window = tk.Toplevel(parent)
         self.window.title("Gestión de Categorías y Tipos")
-        self.window.geometry("1200x600")
+        self.window.geometry("1200x800")
         self.window.transient(parent)
         self.window.grab_set()
         self.window.configure(bg=COLOR_FONDO)
