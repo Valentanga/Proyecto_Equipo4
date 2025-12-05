@@ -121,7 +121,9 @@ class VentanaAuditoria(tk.Toplevel):
             "ELIMINAR_CATEGORIA",
             "AGREGAR_TIPO",
             "EDITAR_TIPO",
-            "ELIMINAR_TIPO"
+            "ELIMINAR_TIPO",
+            "AGREGAR_VERSION",
+            "AGREGAR_COMENTARIO"
         ]
 
         self.combo_accion = ttk.Combobox(
