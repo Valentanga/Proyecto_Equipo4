@@ -1,6 +1,10 @@
 # --- IMPORTACIONES ---
 import tkinter as tk
 from tkinter import messagebox
+
+# NUEVO: para pasar la BD al módulo de versiones
+from db.connection import get_db
+
 # Importamos las clases de nuestras otras ventanas (Login, Subida, auditoria, busqueda, etc)
 from modules.login import LoginView
 from modules.modulo1_Subida import Subida_modulo1
@@ -133,7 +137,6 @@ class MainApp:
         }
 
         # --- GENERACIÓN DINÁMICA DE BOTONES ---
-        # Aquí decidimos qué botones pintar basándonos en la lista de permisos
 
         # 1. BOTÓN DE MÓDULO 1 (Subida de documentos)
         if "subir_documentos" in permisos:
@@ -165,12 +168,13 @@ class MainApp:
             )
             btn.pack(fill="x", padx=80, pady=6)
 
-        # 4. BOTÓN DE MÓDULO 4 VERSIONES (IGUAL ESTILO QUE LOS DEMÁS)
+        # 4. BOTÓN DE MÓDULO 4 VERSIONES (YA CORREGIDO)
         if "versiones_comentarios" in permisos:
             btn = tk.Button(
                 body_frame,
                 text="4. Versiones y Comentarios",
-                command=lambda: abrir_modulo(self.root, self.usuario_actual),
+                # 👇 ahora mandamos root, db y usuario (3 parámetros)
+                command=lambda: abrir_modulo(self.root, get_db(), self.usuario_actual),
                 **btn_style
             )
             btn.pack(fill="x", padx=80, pady=6)
@@ -192,7 +196,6 @@ class MainApp:
             btn.pack(fill="x", padx=80, pady=6)
 
         # Botón para cerrar sesión (regresar al login)
-        # Lo ponemos abajo con un estilo de "Salida"
         tk.Button(
             self.root,
             text="Cerrar Sesión", 
