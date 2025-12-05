@@ -26,7 +26,7 @@ class MainApp:
         self.root = root  # La ventana raíz de Windows
         self.root.geometry("500x400")
         self.root.title("Sistema de Gestión Legal")
-        self.root.configure(bg=COLOR_FONDO) # Color de fondo inicial
+        self.root.configure(bg=COLOR_FONDO)  # Color de fondo inicial
         self.usuario_actual = None  # Al principio no hay nadie logueado
 
         # 🚀 PONER SIEMPRE LA VENTANA PRINCIPAL EN PANTALLA MÁXIMA
@@ -60,8 +60,8 @@ class MainApp:
         for widget in self.root.winfo_children():
             widget.destroy()
         
-        self.root.geometry("600x700") # Hacemos la ventana más grande para el menú
-        self.root.configure(bg=COLOR_FONDO) # Aseguramos el color de fondo
+        self.root.geometry("600x700")  # Hacemos la ventana más grande para el menú
+        self.root.configure(bg=COLOR_FONDO)  # Aseguramos el color de fondo
 
         # 🔁 APLICAMOS OTRA VEZ PANTALLA MÁXIMA (por si geometry la “des-maximiza”)
         try:
@@ -80,24 +80,44 @@ class MainApp:
 
         # --- SECCIÓN DE ENCABEZADO (HEADER) ---
         header_frame = tk.Frame(self.root, bg=COLOR_HEADER, pady=20)
-        header_frame.pack(fill="x") # Se estira a lo ancho
+        header_frame.pack(fill="x")  # Se estira a lo ancho
 
         # Título y Bienvenida con estilo
-        tk.Label(header_frame, text=f"Bienvenido, {nombre}", font=FUENTE_TITULO, 
-                 bg=COLOR_HEADER, fg=COLOR_TEXTO_HEADER).pack(pady=(0,5))
+        tk.Label(
+            header_frame,
+            text=f"Bienvenido, {nombre}",
+            font=FUENTE_TITULO, 
+            bg=COLOR_HEADER,
+            fg=COLOR_TEXTO_HEADER
+        ).pack(pady=(0, 5))
         
-        tk.Label(header_frame, text=f"{email}", font=("Segoe UI", 10, "italic"), 
-                 bg=COLOR_HEADER, fg="#BDC3C7").pack()
+        tk.Label(
+            header_frame,
+            text=f"{email}",
+            font=("Segoe UI", 10, "italic"), 
+            bg=COLOR_HEADER,
+            fg="#BDC3C7"
+        ).pack()
 
         # --- SECCIÓN DE CONTENIDO (CUERPO) ---
         body_frame = tk.Frame(self.root, bg=COLOR_FONDO, pady=20)
         body_frame.pack(fill="both", expand=True)
 
-        tk.Label(body_frame, text="PANEL DE CONTROL", font=("Segoe UI", 12, "bold"), 
-                 bg=COLOR_FONDO, fg="#7F8C8D").pack(pady=(0, 15))
+        tk.Label(
+            body_frame,
+            text="PANEL DE CONTROL",
+            font=("Segoe UI", 12, "bold"), 
+            bg=COLOR_FONDO,
+            fg="#7F8C8D"
+        ).pack(pady=(0, 15))
         
-        tk.Label(body_frame, text="Seleccione una operación:", font=FUENTE_NORMAL, 
-                 bg=COLOR_FONDO, fg="#2C3E50").pack(pady=(0, 10))
+        tk.Label(
+            body_frame,
+            text="Seleccione una operación:",
+            font=FUENTE_NORMAL, 
+            bg=COLOR_FONDO,
+            fg="#2C3E50"
+        ).pack(pady=(0, 10))
 
         # Estilo para los botones (Diccionario para no repetir código)
         btn_style = {
@@ -108,7 +128,7 @@ class MainApp:
             "bd": 0,
             "cursor": "hand2",  # Manita al pasar el mouse
             "pady": 10,
-            "activebackground": "#2980B9", # Color al presionar
+            "activebackground": "#2980B9",  # Color al presionar
             "activeforeground": "white"
         }
 
@@ -117,31 +137,43 @@ class MainApp:
 
         # 1. BOTÓN DE MÓDULO 1 (Subida de documentos)
         if "subir_documentos" in permisos:
-            btn = tk.Button(body_frame, text="1. Registrar Nuevo Documento", 
-                            command=lambda: Subida_modulo1(self.root, self.usuario_actual), 
-                            **btn_style) # Aplicamos el estilo bonito
+            btn = tk.Button(
+                body_frame,
+                text="1. Registrar Nuevo Documento", 
+                command=lambda: Subida_modulo1(self.root, self.usuario_actual), 
+                **btn_style
+            )
             btn.pack(fill="x", padx=80, pady=6)
 
         # 2. BOTÓN DE MODULO 2 BÚSQUEDA
         if "busqueda_avanzada" in permisos:
-            btn = tk.Button(body_frame, text="2. Búsqueda Avanzada", 
-                            command=lambda: BusquedaAvanzada(self.root, self.usuario_actual), 
-                            **btn_style)
+            btn = tk.Button(
+                body_frame,
+                text="2. Búsqueda Avanzada", 
+                command=lambda: BusquedaAvanzada(self.root, self.usuario_actual), 
+                **btn_style
+            )
             btn.pack(fill="x", padx=80, pady=6)
 
         # 3. BOTÓN DE MÓDULO 3 CATEGORÍAS
         if "gestion_categorias" in permisos:
-            btn = tk.Button(body_frame, text="3. Gestión de Categorías", 
-                            command=lambda: GestionCategorias(self.root, self.usuario_actual), 
-                            **btn_style)
+            btn = tk.Button(
+                body_frame,
+                text="3. Gestión de Categorías", 
+                command=lambda: GestionCategorias(self.root, self.usuario_actual), 
+                **btn_style
+            )
             btn.pack(fill="x", padx=80, pady=6)
 
-       # 4. BOTÓN DE MODULO 4 VERSIONES
+        # 4. BOTÓN DE MÓDULO 4 VERSIONES (IGUAL ESTILO QUE LOS DEMÁS)
         if "versiones_comentarios" in permisos:
-            btn = tk.Button(self.root, text="4. Versiones y Comentarios", bg="#FFF3E0", height=2,
-                            command=lambda: abrir_modulo(self.root,  self.usuario_actual))
-
-            btn.pack(fill="x", padx=50, pady=5)
+            btn = tk.Button(
+                body_frame,
+                text="4. Versiones y Comentarios",
+                command=lambda: abrir_modulo(self.root, self.usuario_actual),
+                **btn_style
+            )
+            btn.pack(fill="x", padx=80, pady=6)
 
         # 5. BOTÓN DE MÓDULO 5 AUDITORÍA
         if "auditoria_accesos" in permisos:
@@ -149,18 +181,31 @@ class MainApp:
                 body_frame,
                 text="5. Auditoría de Accesos",
                 command=lambda: VentanaAuditoria(self.root),
-                font=FUENTE_BTN, bg=COLOR_BTN, fg="white",  # respeta tu estilo original
-                relief="flat", cursor="hand2", pady=10, bd=0
+                font=FUENTE_BTN,
+                bg=COLOR_BTN,
+                fg="white",
+                relief="flat",
+                cursor="hand2",
+                pady=10,
+                bd=0
             )
             btn.pack(fill="x", padx=80, pady=6)
 
         # Botón para cerrar sesión (regresar al login)
         # Lo ponemos abajo con un estilo de "Salida"
-        tk.Button(self.root, text="Cerrar Sesión", 
-                  font=("Segoe UI", 10, "bold"), fg=COLOR_LOGOUT, bg=COLOR_FONDO, 
-                  activebackground=COLOR_FONDO, activeforeground="black",
-                  relief="flat", cursor="hand2", bd=0,
-                  command=self.mostrar_login).pack(side="bottom", pady=30)
+        tk.Button(
+            self.root,
+            text="Cerrar Sesión", 
+            font=("Segoe UI", 10, "bold"),
+            fg=COLOR_LOGOUT,
+            bg=COLOR_FONDO, 
+            activebackground=COLOR_FONDO,
+            activeforeground="black",
+            relief="flat",
+            cursor="hand2",
+            bd=0,
+            command=self.mostrar_login
+        ).pack(side="bottom", pady=30)
 
 # --- PUNTO DE ENTRADA DEL PROGRAMA ---
 if __name__ == "__main__":
