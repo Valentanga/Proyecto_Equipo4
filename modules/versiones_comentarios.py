@@ -28,11 +28,10 @@ class VersionesComentariosGUI(tk.Frame):
     """
     GUI de Versiones y Comentarios dentro de un Toplevel.
 
-    Objetivos:
-    - UI similar a tu captura (layout limpio).
-    - Agregar versiones sin fallar por el bug de datetime en repos.
-    - Mantener comentarios si ya los usan.
-    - Botón para regresar al menú principal.
+    Objetivo principal de esta versión:
+    - Que SIEMPRE liste y agregue versiones aunque exista variación
+      en el esquema de Mongo entre compañeros (campos/tipos).
+    - Que los comentarios también aparezcan aunque el campo cambie.
     """
 
     def __init__(self, master, db, usuario):
@@ -41,6 +40,7 @@ class VersionesComentariosGUI(tk.Frame):
         self.db = db
         self.usuario = usuario or {}
 
+        # Repos (se intentan usar primero)
         self.vers_repo = VersionesRepo(db)
         self.comm_repo = ComentariosRepo(db)
         self.audit = AuditoriaRepo(db)
@@ -57,7 +57,6 @@ class VersionesComentariosGUI(tk.Frame):
     # ---------------- UI ----------------
 
     def _build(self):
-        # Configuración de grid
         self.grid_columnconfigure(1, weight=1)
         self.grid_rowconfigure(1, weight=1)  # tabla
         self.grid_rowconfigure(4, weight=1)  # comentarios
@@ -67,10 +66,9 @@ class VersionesComentariosGUI(tk.Frame):
             self, text="Documento ID", font=FUENTE_NORMAL, bg=COLOR_FONDO
         ).grid(row=0, column=0, sticky="w", padx=(10, 6), pady=(8, 4))
 
-        entry_doc = tk.Entry(
+        tk.Entry(
             self, textvariable=self.documento_id, font=FUENTE_NORMAL, bg="white"
-        )
-        entry_doc.grid(row=0, column=1, sticky="ew", pady=(8, 4))
+        ).grid(row=0, column=1, sticky="ew", pady=(8, 4))
 
         tk.Button(
             self,
@@ -85,18 +83,8 @@ class VersionesComentariosGUI(tk.Frame):
 
         # ---- Estilos del Treeview ----
         style = ttk.Style()
-        style.configure(
-            "Treeview",
-            font=FUENTE_NORMAL,
-            background="white",
-            fieldbackground="white"
-        )
-        style.configure(
-            "Treeview.Heading",
-            font=FUENTE_BTN,
-            background=COLOR_HEADER,
-            foreground=COLOR_TEXTO_HEADER
-        )
+        style.configure("Treeview", font=FUENTE_NORMAL, background="white", fieldbackground="white")
+        style.configure("Treeview.Heading", font=FUENTE_BTN, background=COLOR_HEADER, foreground=COLOR_TEXTO_HEADER)
 
         # ---- FILA 1: Tabla de versiones ----
         self.tree = ttk.Treeview(
@@ -107,13 +95,12 @@ class VersionesComentariosGUI(tk.Frame):
         self.tree.heading("fecha", text="Fecha")
 
         self.tree.column("numero", width=80, anchor="w")
-        self.tree.column("ruta", width=420, anchor="w")
+        self.tree.column("ruta", width=520, anchor="w")
         self.tree.column("fecha", width=180, anchor="w")
 
         self.tree.bind("<<TreeviewSelect>>", self.on_select)
         self.tree.grid(row=1, column=0, columnspan=3, sticky="nsew", padx=10, pady=(0, 8))
 
-        # Scroll vertical tabla
         vsb = ttk.Scrollbar(self, orient="vertical", command=self.tree.yview)
         self.tree.configure(yscrollcommand=vsb.set)
         vsb.grid(row=1, column=3, sticky="ns", pady=(0, 8))
@@ -135,10 +122,9 @@ class VersionesComentariosGUI(tk.Frame):
             self, text="Comentario", font=FUENTE_NORMAL, bg=COLOR_FONDO
         ).grid(row=3, column=0, sticky="w", padx=(10, 6))
 
-        entry_com = tk.Entry(
+        tk.Entry(
             self, textvariable=self.comentario, font=FUENTE_NORMAL, bg="white"
-        )
-        entry_com.grid(row=3, column=1, sticky="ew")
+        ).grid(row=3, column=1, sticky="ew")
 
         tk.Button(
             self,
@@ -152,9 +138,7 @@ class VersionesComentariosGUI(tk.Frame):
         ).grid(row=3, column=2, padx=(6, 10), sticky="e")
 
         # ---- FILA 4: Lista de comentarios ----
-        self.list_comm = tk.Listbox(
-            self, font=FUENTE_NORMAL, bg="white"
-        )
+        self.list_comm = tk.Listbox(self, font=FUENTE_NORMAL, bg="white")
         self.list_comm.grid(row=4, column=0, columnspan=3, sticky="nsew", padx=10, pady=(6, 10))
 
         # ---- FILA 5: Botón regresar ----
@@ -169,20 +153,99 @@ class VersionesComentariosGUI(tk.Frame):
             command=self.volver_menu
         ).grid(row=5, column=0, columnspan=3, sticky="ew", padx=120, pady=(0, 12))
 
+    # ---------------- Helpers robustos ----------------
+
+    def _build_doc_or_filter(self, doc_oid, doc_id_str):
+        # Campos comunes que pueden usar distintos compañeros
+        posibles = [
+            {"documento_id": doc_oid},
+            {"documento_id": doc_id_str},
+            {"documento": doc_oid},
+            {"documento": doc_id_str},
+            {"documentoId": doc_oid},
+            {"documentoId": doc_id_str},
+            {"doc_id": doc_oid},
+            {"doc_id": doc_id_str},
+        ]
+        return {"$or": posibles}
+
+    def _build_version_or_filter(self, version_id_str):
+        filtros = [{"version_id": version_id_str},
+                   {"versionId": version_id_str},
+                   {"version": version_id_str}]
+
+        # Si el id del tree es un ObjectId válido, añadimos esas variantes
+        try:
+            vid_oid = ObjectId(version_id_str)
+            filtros.extend([
+                {"version_id": vid_oid},
+                {"versionId": vid_oid},
+                {"version": vid_oid},
+            ])
+        except Exception:
+            pass
+
+        return {"$or": filtros}
+
+    def _listar_versiones_robusto(self, doc_oid, doc_id_str):
+        # 1) intento repo
+        try:
+            versiones = self.vers_repo.listar_por_documento(doc_oid) or []
+        except Exception:
+            versiones = []
+
+        # 2) si repo no trajo nada, buscamos directo con varios campos
+        if not versiones:
+            try:
+                q = self._build_doc_or_filter(doc_oid, doc_id_str)
+                versiones = list(self.db["versiones"].find(q).sort("numero", 1))
+            except Exception:
+                versiones = []
+
+        return versiones
+
+    def _listar_comentarios_robusto(self, version_id_str):
+        # 1) intento repo
+        try:
+            comentarios = self.comm_repo.listar_por_version(version_id_str) or []
+        except Exception:
+            comentarios = []
+
+        # 2) si repo no trajo nada, buscamos directo
+        if not comentarios:
+            try:
+                q = self._build_version_or_filter(version_id_str)
+                comentarios = list(self.db["comentarios"].find(q).sort("createdAt", 1))
+            except Exception:
+                comentarios = []
+
+        return comentarios
+
+    def _obtener_numero_siguiente(self, doc_oid, doc_id_str):
+        versiones = self._listar_versiones_robusto(doc_oid, doc_id_str)
+        max_num = 0
+        for v in versiones:
+            try:
+                n = int(v.get("numero", 0))
+                if n > max_num:
+                    max_num = n
+            except Exception:
+                pass
+        return max_num + 1
+
     # ---------------- LÓGICA ----------------
 
     def refrescar(self):
-        # Limpiar tabla
         for i in self.tree.get_children():
             self.tree.delete(i)
 
-        doc_id = self.documento_id.get().strip()
-        if not doc_id:
+        doc_id_str = self.documento_id.get().strip()
+        if not doc_id_str:
             messagebox.showerror("Error", "Ingresa Documento ID")
             return
 
         try:
-            doc_oid = ObjectId(doc_id)
+            doc_oid = ObjectId(doc_id_str)
         except InvalidId:
             messagebox.showerror(
                 "Error",
@@ -190,12 +253,7 @@ class VersionesComentariosGUI(tk.Frame):
             )
             return
 
-        # Cargar versiones
-        try:
-            versiones = self.vers_repo.listar_por_documento(doc_oid)
-        except Exception:
-            # Fallback por si algo raro pasa en el repo
-            versiones = list(self.db["versiones"].find({"documento_id": doc_oid}).sort("numero", 1))
+        versiones = self._listar_versiones_robusto(doc_oid, doc_id_str)
 
         for v in versiones:
             created = v.get("createdAt", "")
@@ -205,7 +263,7 @@ class VersionesComentariosGUI(tk.Frame):
             self.tree.insert(
                 "",
                 tk.END,
-                iid=str(v.get("_id")),
+                iid=str(v.get("_id", "")),
                 values=(v.get("numero", ""), v.get("ruta", ""), created)
             )
 
@@ -222,37 +280,20 @@ class VersionesComentariosGUI(tk.Frame):
         if not self.version_sel:
             return
 
-        try:
-            comentarios = self.comm_repo.listar_por_version(self.version_sel)
-        except Exception:
-            # Fallback directo a colección
-            try:
-                comentarios = list(self.db["comentarios"].find({"version_id": self.version_sel}))
-            except Exception:
-                comentarios = []
-
+        comentarios = self._listar_comentarios_robusto(self.version_sel)
         for c in comentarios:
             autor = c.get("autor", "")
             texto = c.get("texto", "")
             self.list_comm.insert(tk.END, f"{autor}: {texto}")
 
-    def _obtener_numero_siguiente(self, doc_oid):
-        # Intenta usar el repo
-        try:
-            actuales = self.vers_repo.listar_por_documento(doc_oid)
-            return len(actuales) + 1
-        except Exception:
-            # Fallback directo
-            return self.db["versiones"].count_documents({"documento_id": doc_oid}) + 1
-
     def agregar_version(self):
-        doc_id = self.documento_id.get().strip()
-        if not doc_id:
+        doc_id_str = self.documento_id.get().strip()
+        if not doc_id_str:
             messagebox.showerror("Error", "Ingresa Documento ID")
             return
 
         try:
-            doc_oid = ObjectId(doc_id)
+            doc_oid = ObjectId(doc_id_str)
         except InvalidId:
             messagebox.showerror("Error", "Documento ID inválido.")
             return
@@ -265,42 +306,44 @@ class VersionesComentariosGUI(tk.Frame):
             with open(ruta, "rb") as f:
                 digest = hashlib.sha256(f.read()).hexdigest()
 
-            numero = self._obtener_numero_siguiente(doc_oid)
-
+            numero = self._obtener_numero_siguiente(doc_oid, doc_id_str)
             autor = self.usuario.get("nombre", "") or self.usuario.get("username", "")
 
-            # -------- 1) Intento normal con repo --------
             vid = None
+
+            # 1) Intento normal repo
             try:
-                vid = self.vers_repo.crear(doc_id, numero, ruta, digest, autor)
+                vid = self.vers_repo.crear(doc_id_str, numero, ruta, digest, autor)
 
             except Exception as e:
-                # -------- 2) Fallback por bug típico de datetime --------
-                if "utcnow" in str(e):
-                    version_doc = {
-                        "documento_id": doc_oid,
-                        "numero": numero,
-                        "ruta": ruta,
-                        "hash": digest,
-                        "autor": autor,
-                        "createdAt": datetime.utcnow()
-                    }
-                    res = self.db["versiones"].insert_one(version_doc)
-                    vid = res.inserted_id
-                else:
-                    raise
+                # 2) Fallback directo: insert robusto con varios campos compatibles
+                version_doc = {
+                    # Guardamos en múltiples llaves típicas para compatibilidad
+                    "documento_id": doc_oid,
+                    "documento": doc_oid,
+                    "documentoId": doc_id_str,
 
-            # Auditoría (si falla, no rompe la demo)
+                    "numero": numero,
+                    "ruta": ruta,
+                    "hash": digest,
+                    "autor": autor,
+                    "createdAt": datetime.utcnow()
+                }
+                res = self.db["versiones"].insert_one(version_doc)
+                vid = res.inserted_id
+
+            # Auditoría (no rompe si falla)
             try:
                 self.audit.registrar(
                     self.usuario.get("rol", ""),
-                    doc_id,
+                    doc_id_str,
                     "AGREGAR_VERSION",
                     {"versionId": str(vid)}
                 )
             except Exception:
                 pass
 
+            # IMPORTANTÍSIMO: recargar lista al instante
             self.refrescar()
 
         except Exception as e:
@@ -319,12 +362,19 @@ class VersionesComentariosGUI(tk.Frame):
         try:
             autor = self.usuario.get("nombre", "") or self.usuario.get("username", "")
 
+            cid = None
+
+            # 1) Intento repo
             try:
                 cid = self.comm_repo.crear(self.version_sel, texto, autor)
+
             except Exception:
-                # Fallback directo
+                # 2) Fallback directo, guardando llaves compatibles
                 doc = {
                     "version_id": self.version_sel,
+                    "versionId": self.version_sel,
+                    "version": self.version_sel,
+
                     "texto": texto,
                     "autor": autor,
                     "createdAt": datetime.utcnow()
@@ -332,6 +382,7 @@ class VersionesComentariosGUI(tk.Frame):
                 res = self.db["comentarios"].insert_one(doc)
                 cid = res.inserted_id
 
+            # Auditoría (no romper)
             try:
                 self.audit.registrar(
                     self.usuario.get("rol", ""),
@@ -342,8 +393,8 @@ class VersionesComentariosGUI(tk.Frame):
             except Exception:
                 pass
 
-            self.refrescar_comentarios()
             self.comentario.set("")
+            self.refrescar_comentarios()
 
         except Exception as e:
             messagebox.showerror("Error", str(e))
@@ -363,7 +414,6 @@ class VersionesComentariosGUI(tk.Frame):
             except Exception:
                 pass
 
-        # Cerramos el Toplevel que contiene este Frame
         try:
             self.master.destroy()
         except Exception:
@@ -375,7 +425,6 @@ def abrir_modulo(master, *args):
     Compatible con:
       1) abrir_modulo(master, usuario)
       2) abrir_modulo(master, db, usuario)
-      3) abrir_modulo(master, usuario, db=algo)  (indirecto vía args)
 
     - Oculta el menú principal mientras está abierta.
     - Abre esta ventana en pantalla completa.
@@ -400,7 +449,7 @@ def abrir_modulo(master, *args):
     else:
         raise TypeError("abrir_modulo requiere al menos el usuario.")
 
-    # Si no pasan db, lo obtenemos aquí (sin tocar main)
+    # Si no pasan db, lo obtenemos aquí
     if db is None:
         from db.connection import get_db
         db = get_db()
@@ -427,7 +476,6 @@ def abrir_modulo(master, *args):
     gui = VersionesComentariosGUI(ventana, db, usuario)
     gui.pack(fill="both", expand=True)
 
-    # Cerrar con X = volver menú
     ventana.protocol("WM_DELETE_WINDOW", gui.volver_menu)
 
     return ventana
