@@ -22,9 +22,22 @@ class GestionCategorias:
         self.window = tk.Toplevel(parent)
         self.window.title("Gestión de Categorías y Tipos")
         self.window.geometry("1200x800")
+        self.window.state("zoomed")
         self.window.transient(parent)
         self.window.grab_set()
         self.window.configure(bg=COLOR_FONDO)
+
+        btn_back = tk.Button(
+            self.window,
+            text="⭠ Volver al Menú Principal",
+            bg=COLOR_LOGOUT,
+            fg="white",
+            font=FUENTE_BTN,
+            relief="flat",
+            bd=0,
+            command=self.volver_menu_principal
+        )
+        btn_back.pack(anchor="w", padx=10, pady=10)
 
         self.service = CategoriasService()
         self.aud = AuditoriaService()
@@ -259,6 +272,11 @@ class GestionCategorias:
             self.mostrar_tipos(cat_id)
         except Exception as e:
             messagebox.showerror("Error", str(e))
+
+    def volver_menu_principal(self):
+        """Cierra esta ventana y regresa al menú principal."""
+        self.window.destroy()
+
 
 # ----------------- DIALOGS -----------------
 class CategoriaDialog:
