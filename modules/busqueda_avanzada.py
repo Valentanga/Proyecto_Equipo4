@@ -290,4 +290,6 @@ class BusquedaAvanzada:
 
     def volver_menu(self):
         from main import MainApp
-        MainApp(self.root)
+        app = MainApp(self.root)
+        app.usuario_actual = self.usuario_actual
+        app.mostrar_menu_principal()
