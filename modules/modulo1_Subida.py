@@ -207,7 +207,6 @@ class Subida_modulo1(tk.Toplevel):
         # ---------------------------------------------------------
         # 2. SECCIÓN DE TABLA (VISOR)
         # ---------------------------------------------------------
-        # (CORREGIDO: Texto limpio)
         lbl_tabla = tk.Label(
             self,
             text="DOCUMENTOS REGISTRADOS", 
@@ -221,22 +220,32 @@ class Subida_modulo1(tk.Toplevel):
         frame_tabla = tk.Frame(self, bg=COLOR_FONDO)
         frame_tabla.pack(fill="both", expand=True, padx=20, pady=10)
 
-        cols = ("ID", "Titulo", "Tipo", "Fecha")
+        cols = ("ID", "Titulo", "Categoria", "Tipo", "Actores", "Fecha", "Usuario")
+        
         self.tree = ttk.Treeview(frame_tabla, columns=cols, show="headings", height=8)
         
         style = ttk.Style()
         style.configure("Treeview.Heading", font=("Segoe UI", 10, "bold"))
         style.configure("Treeview", font=("Segoe UI", 9))
-
+        
         self.tree.heading("ID", text="ID")
         self.tree.heading("Titulo", text="Título / Expediente")
+        self.tree.heading("Categoria", text="Categoría")      # <--- Nuevo
         self.tree.heading("Tipo", text="Tipo")
+        self.tree.heading("Actores", text="Actores")          # <--- Nuevo
         self.tree.heading("Fecha", text="F. Vencimiento")
+        self.tree.heading("Usuario", text="Subido Por")       # <--- Nuevo
 
         self.tree.column("ID", width=0, stretch=tk.NO) 
-        self.tree.column("Titulo", width=300)
-        self.tree.column("Tipo", width=200)
-        # (CORREGIDO: Centrar fecha)
+        self.tree.column("Titulo", width=200)
+        self.tree.column("Categoria", width=120)              # <--- Nuevo
+        self.tree.column("Tipo", width=100)
+        self.tree.column("Actores", width=150)                # <--- Nuevo
+        self.tree.column("Fecha", width=90, anchor="center")
+        self.tree.column("Usuario", width=80, anchor="center")# <--- Nuevo
+
+        scrollbar = ttk.Scrollbar(frame_tabla, orient="vertical", command=self.tree.yview)
+        
         self.tree.column("Fecha", width=100, anchor="center")
 
         scrollbar = ttk.Scrollbar(frame_tabla, orient="vertical", command=self.tree.yview)
@@ -268,7 +277,6 @@ class Subida_modulo1(tk.Toplevel):
         if self.master is not None:
             try:
                 self.master.deiconify()
-                # 👇 Maximizar también el menú principal
                 try:
                     self.master.state("zoomed")
                 except tk.TclError:
@@ -292,23 +300,37 @@ class Subida_modulo1(tk.Toplevel):
         cursor = db["documentos"].find().sort("fecha_subida", -1).limit(20)
 
         for doc in cursor:
+            # Obtener datos con valores por defecto si no existen
+            titulo = doc.get("titulo", "Sin Título")
+            categoria = doc.get("categoria", "")      # <--- Nuevo
             tipo_mostrar = str(doc.get("tipo", "N/A"))
             
-            # (CORREGIDO: Lógica para mostrar fecha_vencimiento, fecha_evento o '---')
+            # Los actores a veces son textos largos, reemplazamos saltos de línea por espacios
+            actores_raw = doc.get("actores_involucrados", "")
+            actores = actores_raw.replace("\n", " ") if actores_raw else "" # <--- Nuevo
+            
+            usuario = doc.get("subido_por", "Anon")   # <--- Nuevo
+
+            # Lógica de fechas
             fecha_mostrar = doc.get("fecha_vencimiento")
             if not fecha_mostrar:
                 fecha_mostrar = doc.get("fecha_evento")
             if not fecha_mostrar:
                 fecha_mostrar = "---"
 
+            # Insertar en el orden exacto de las columnas:
+            # ("ID", "Titulo", "Categoria", "Tipo", "Actores", "Fecha", "Usuario")
             self.tree.insert(
                 "",
                 "end",
                 values=(
                     str(doc["_id"]), 
-                    doc.get("titulo", "Sin Título"),
+                    titulo,
+                    categoria,
                     tipo_mostrar,
-                    fecha_mostrar
+                    actores,
+                    fecha_mostrar,
+                    usuario
                 )
             )
 
@@ -441,7 +463,15 @@ class Subida_modulo1(tk.Toplevel):
         actores = self.txt_actores.get("1.0", tk.END).strip()
         
         # OBTENER FECHA DEL CALENDARIO
-        fecha = self.cal_fecha.get_date()              # objeto date
+        fecha = self.cal_fecha.get_date()  
+        
+        hoy = datetime.now().date()  # Obtenemos la fecha de hoy (sin hora)
+        
+        if fecha < hoy:
+            messagebox.showwarning("Fecha inválida", "La fecha de vencimiento es incorrecta.")
+            return
+        
+        # objeto date
         fecha_str = fecha.strftime("%Y-%m-%d")         # string para BD
         
         cat_sel = self.combo_categoria.get()
